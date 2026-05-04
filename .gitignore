@@ -1,0 +1,68 @@
+# ==============================================================================
+# OS Generated Files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==============================================================================
+# Node.js & Frontend (Next.js/React)
+# ==============================================================================
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnpm-debug.log
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.next/
+out/
+build/
+dist/
+.eslintcache
+.vercel
+
+# ==============================================================================
+# Python & Backend (Django / Flask / FastAPI)
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+db.sqlite3
+db.sqlite3-journal
+instance/
+
+# ==============================================================================
+# IDEs and Editors
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

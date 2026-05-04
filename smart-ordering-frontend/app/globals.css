@@ -1,0 +1,81 @@
+/*
+  ============================================================
+  GLOBALS.CSS — Global Styles for Smart Restaurant Ordering System
+  ============================================================
+  NOTE: Fonts are loaded via next/font/google in layout.tsx
+  (the correct Next.js way — self-hosted, faster, no @import conflict)
+  ============================================================
+*/
+
+/* ── Tailwind CSS ─────────────────────────────────────── */
+@import "tailwindcss";
+
+/* ── CSS Custom Properties (Design Tokens) ───────────────── */
+:root {
+  /* Minimal warm SaaS Palette */
+  --color-bg: #F7F3EC;
+  --color-bg-card: #FFFDF8;
+  --color-text-primary: #1F2933;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-primary: #E86A33;
+  --color-soft-orange: #FFE1D2;
+  --color-border: #E8DED2;
+  --color-accent-green: #5B8C6A;
+  --color-bg-elevated: #FFFFFF;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+}
+
+/* ── Tailwind Theme Extension ─────────────────────────────── */
+@theme {
+  --color-primary: var(--color-primary);
+  --color-soft-orange: var(--color-soft-orange);
+  --color-bg: var(--color-bg);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-accent-green: var(--color-accent-green);
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Playfair Display', serif;
+}
+
+/* ── Base / Reset ────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Custom Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* ── Utility Classes ─────────────────────────────────────── */
+.gradient-text {
+  color: var(--color-primary);
+}
+
+.glass-card {
+  background: rgba(255, 253, 248, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.glow-orange {
+  box-shadow: 0 4px 14px rgba(232, 106, 51, 0.2);
+}

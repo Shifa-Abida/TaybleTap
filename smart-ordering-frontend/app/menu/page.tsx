@@ -24,6 +24,29 @@ const CATEGORY_COLORS = {
 
 const EMPTY_FORM = { name: "", price: "", category: "Starters", desc: "", image: null, imagePreview: null, available: true };
 
+const DEFAULT_ITEMS = [
+  { name: "Chicken Biryani",      emoji: "🍚", price: 280, category: "Biryani",  desc: "Aromatic basmati rice with tender chicken & spices",    available: true  },
+  { name: "Paneer Butter Masala", emoji: "🍛", price: 220, category: "Curries",  desc: "Rich tomato-based curry with soft paneer cubes",          available: true  },
+  { name: "Tandoori Platter",     emoji: "🍗", price: 380, category: "Starters", desc: "Mixed grill platter with mint chutney",                  available: true  },
+  { name: "Dal Makhani",          emoji: "🫕", price: 180, category: "Curries",  desc: "Slow-cooked black lentils in buttery tomato sauce",        available: false },
+  { name: "Garlic Naan",          emoji: "🫓", price: 60,  category: "Breads",   desc: "Soft naan brushed with garlic butter",                   available: true  },
+  { name: "Gulab Jamun",          emoji: "🍮", price: 80,  category: "Desserts", desc: "Soft milk dumplings soaked in rose syrup",                available: true  },
+  { name: "Mango Lassi",          emoji: "🥤", price: 90,  category: "Drinks",   desc: "Chilled mango yogurt drink",                            available: true  },
+  { name: "Veg Spring Rolls",     emoji: "🥗", price: 120, category: "Starters", desc: "Crispy rolls stuffed with spiced vegetables",              available: true  },
+  { name: "Mutton Biryani",       emoji: "🍲", price: 340, category: "Biryani",   desc: "Slow-cooked mutton with fragrant basmati rice",            available: false },
+  { name: "Masala Chai",          emoji: "☕", price: 40,  category: "Drinks",   desc: "Spiced Indian tea with ginger and cardamom",             available: true  },
+  { name: "Butter Naan",          emoji: "🫓", price: 50,  category: "Breads",   desc: "Soft leavened bread baked in tandoor",                    available: true  },
+  { name: "Rasmalai",             emoji: "🍮", price: 100, category: "Desserts", desc: "Soft cheese dumplings in sweetened milk",                available: true  },
+  { name: "Chicken 65",           emoji: "🍗", price: 200, category: "Starters", desc: "Spicy deep-fried chicken with curry leaves",             available: true  },
+  { name: "Kadai Paneer",         emoji: "🍛", price: 240, category: "Curries",  desc: "Paneer cooked in a spiced tomato gravy with peppers",     available: true  },
+  { name: "Jeera Rice",           emoji: "🍚", price: 90,  category: "Biryani",  desc: "Fragrant basmati rice with cumin seeds",                  available: true  },
+  { name: "Plain Dosa",           emoji: "🥞", price: 70,  category: "Starters", desc: "Crispy rice and lentil crepe with sambar & chutney",    available: true  },
+  { name: "Chicken Fried Rice",   emoji: "🍳", price: 180, category: "Biryani",  desc: "Wok-tossed rice with chicken, egg & vegetables",          available: true  },
+  { name: "Coca-Cola",            emoji: "🥤", price: 50,  category: "Drinks",   desc: "Chilled soft drink",                                   available: true  },
+  { name: "Mango Cheesecake",     emoji: "🍰", price: 150, category: "Desserts", desc: "Creamy cheesecake with fresh mango topping",            available: true  },
+  { name: "Roti",                 emoji: "🫓", price: 30,  category: "Breads",   desc: "Whole wheat flatbread baked on tandoor",                available: true  },
+];
+
 function Badge({ category }: { category: string }) {
   const c = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] || { bg: SOFT_BG, color: TEXT_MUTED };
   return (
@@ -384,10 +407,25 @@ export default function MenuManagement() {
       });
       if (res.ok) {
         const data = await res.json();
-        setItems(data.items || []);
+        if (data.items && data.items.length === 0) {
+          for (const item of DEFAULT_ITEMS) {
+            await fetch("http://localhost:8000/api/menu/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify(item),
+            });
+          }
+          const retryRes = await fetch("http://localhost:8000/api/menu/", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const retryData = await retryRes.json();
+          setItems(retryData.items || []);
+        } else {
+          setItems(data.items || []);
+        }
       }
     } catch {
-      // fallback to empty on error
+      setItems([]);
     } finally {
       setLoading(false);
     }

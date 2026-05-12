@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 const PRIMARY = "#FF6B35";
 const GREEN = "#22C55E";
@@ -73,12 +73,12 @@ const statusConfig: Record<string, { bg: string; color: string; dot: string }> =
 };
 
 const navItems = [
-  { icon: "⊞", label: "Dashboard",   active: true  },
-  { icon: "🧾", label: "Live Orders", active: false },
-  { icon: "🍽️", label: "Menu",        active: false },
-  { icon: "📊", label: "Analytics",  active: false },
-  { icon: "⬛", label: "QR Codes",    active: false },
-  { icon: "⚙️", label: "Settings",    active: false },
+  { icon: "⊞", label: "Dashboard",   href: "/dashboard" },
+  { icon: "🧾", label: "Live Orders", href: "/orders" },
+  { icon: "🍽️", label: "Menu",        href: "/menu" },
+  { icon: "📊", label: "Analytics",  href: "/analytics" },
+  { icon: "⬛", label: "QR Codes",    href: "/qr" },
+  { icon: "⚙️", label: "Settings",    href: "/settings" },
 ];
 
 const notifications = [
@@ -90,8 +90,8 @@ const notifications = [
 export default function AdminDashboard() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("Dashboard");
   const [filterStatus, setFilterStatus] = useState("All");
 
   useEffect(() => {
@@ -155,11 +155,11 @@ export default function AdminDashboard() {
         {/* Nav Items */}
         <nav style={{ flex: 1 }}>
           {navItems.map(item => {
-            const isActive = activeNav === item.label;
+            const isActive = pathname === item.href;
             return (
               <button
                 key={item.label}
-                onClick={() => setActiveNav(item.label)}
+                onClick={() => router.push(item.href)}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: 10,
                   padding: "11px 20px", border: "none", cursor: "pointer",

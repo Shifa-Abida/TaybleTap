@@ -75,7 +75,7 @@ def menu_list(request):
             "price": float(price),
             "category": category,
             "desc": desc,
-            "emoji": "🍽️",
+            "emoji": data.get("emoji", "🍽️"),
             "imagePreview": None,
             "available": available,
             "created_at": "now",

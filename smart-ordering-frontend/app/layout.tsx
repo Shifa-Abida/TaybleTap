@@ -20,6 +20,7 @@
 
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import ClientLayout from "@/context/ClientLayout";
 import "./globals.css";
 
 /* Load Inter font — used for all body text */
@@ -54,7 +55,9 @@ export default function RootLayout({
       /* Apply font CSS variables to the whole document */
       className={`${inter.variable} ${playfair.variable}`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ClientLayout>{children}</ClientLayout>
+      </body>
     </html>
   );
 }

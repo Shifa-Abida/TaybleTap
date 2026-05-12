@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── CSS Variables & Global Styles ────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -216,12 +219,18 @@ const icons = {
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <nav style={{
@@ -261,12 +270,25 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn-outline" style={{ padding: "10px 18px", fontSize: 13 }}>
-            <Icon path={icons.logIn} size={15} color="var(--primary)" /> Login
-          </button>
-          <button className="btn-primary" style={{ padding: "10px 20px", fontSize: 13 }}>
-            Register Free
-          </button>
+          {isAuthenticated ? (
+            <>
+              <Link href="/dashboard" className="btn-outline" style={{ padding: "10px 18px", fontSize: 13, textDecoration: "none" }}>
+                {user?.name || "Dashboard"}
+              </Link>
+              <button onClick={handleLogout} className="btn-primary" style={{ padding: "10px 20px", fontSize: 13, border: "none", cursor: "pointer" }}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="btn-outline" style={{ padding: "10px 18px", fontSize: 13, textDecoration: "none" }}>
+                <Icon path={icons.logIn} size={15} color="var(--primary)" /> Login
+              </Link>
+              <Link href="/register" className="btn-primary" style={{ padding: "10px 20px", fontSize: 13, textDecoration: "none" }}>
+                Register Free
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -162,7 +162,7 @@ export default function DashboardPreview() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                      style={{ background: order.i === 1 ? "rgba(91,140,106,0.1)" : "var(--color-soft-orange)", color: order.color }}>
+                      style={{ background: i === 1 ? "rgba(91,140,106,0.1)" : "var(--color-soft-orange)", color: order.color }}>
                       {order.icon} {order.status}
                     </div>
                   </motion.div>

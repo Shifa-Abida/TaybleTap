@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(D:/SOS/smart-ordering-backend/venv/Scripts/python.exe *)",
+      "Bash(curl -s http://localhost:8000/api/auth/register/ -X POST -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"email\":\"test@example.com\",\"password\":\"test123456\"}')",
+      "Bash(curl -sv http://localhost:8000/api/auth/register/ -X POST -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"email\":\"test@example.com\",\"password\":\"test123456\"}')",
+      "Bash(curl *)",
+      "Bash(nslookup tpx4k19.mongodb.net)",
+      "Bash(nslookup ac-qldg9wd-shard-00-00.tpx4k19.mongodb.net)",
+      "Bash(powershell *)"
+    ]
+  }
+}

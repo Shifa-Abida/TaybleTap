@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#E8602E";
 const GREEN = "#1A9E6B";
@@ -376,7 +376,6 @@ function MenuCard({ item, onEdit, onDelete, onToggle }: { item: any; onEdit: (it
 
 export default function MenuManagement() {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -389,9 +388,9 @@ export default function MenuManagement() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login");
+      window.location.href = "/login";
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user]);
 
   useEffect(() => {
     if (user) {
@@ -527,19 +526,18 @@ export default function MenuManagement() {
   if (!user) return null;
 
   return (
+    <AdminLayout>
     <div style={{ minHeight: "100vh", background: "#FFFDF8", fontFamily: "'DM Sans', sans-serif" }}>
 
       <header style={{
         background: "white", borderBottom: `1px solid ${BORDER}`,
         padding: "0 28px", height: 58,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 50,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: PRIMARY, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🍽️</div>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: TEXT_PRIMARY }}>TaybleTap — Menu Management</p>
-            <p style={{ margin: 0, fontSize: 11, color: TEXT_MUTED }}>taybletap.app/menu</p>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: TEXT_PRIMARY, fontFamily: "'Playfair Display', serif" }}>Menu Management</p>
+            <p style={{ margin: 0, fontSize: 12, color: TEXT_MUTED }}>Manage your restaurant menu</p>
           </div>
         </div>
 
@@ -755,5 +753,6 @@ export default function MenuManagement() {
         />
       )}
     </div>
+    </AdminLayout>
   );
 }

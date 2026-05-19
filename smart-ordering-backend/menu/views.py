@@ -7,6 +7,16 @@ from accounts.db import get_collection
 
 CATEGORIES = ["Starters", "Biryani", "Curries", "Breads", "Drinks", "Desserts"]
 
+# Demo menu items for when MongoDB is unavailable
+DEMO_MENU_ITEMS = [
+    {"id": "demo-1", "name": "Chicken Biryani", "price": 250, "category": "Biryani", "desc": " aromatic basmati rice with spiced chicken", "emoji": "🍚", "available": True},
+    {"id": "demo-2", "name": "Palak Paneer", "price": 180, "category": "Curries", "desc": "Cottage cheese in spinach gravy", "emoji": "🥬", "available": True},
+    {"id": "demo-3", "name": "Butter Chicken", "price": 320, "category": "Curries", "desc": "Creamy tomato-based chicken curry", "emoji": "🍗", "available": True},
+    {"id": "demo-4", "name": "Garlic Naan", "price": 40, "category": "Breads", "desc": "Soft bread with garlic butter", "emoji": "🫓", "available": True},
+    {"id": "demo-5", "name": "Mango Lassi", "price": 60, "category": "Drinks", "desc": "Sweet yogurt mango drink", "emoji": "🥭", "available": True},
+    {"id": "demo-6", "name": "Gulab Jamun", "price": 50, "category": "Desserts", "desc": "Sweet milk dumplings in syrup", "emoji": "🍰", "available": True},
+]
+
 
 def get_user_from_token(request):
     """Extract user from Authorization: Bearer <token> header."""
@@ -31,7 +41,19 @@ def menu_list(request):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_collection("menu_items")
+    # Demo mode: return mock data for demo user
+    if user.get("user_id") == "demo-user-id-123":
+        if request.method == "GET":
+            return JsonResponse({"items": DEMO_MENU_ITEMS})
+        return JsonResponse({"error": "Demo mode - create not supported"}, status=403)
+
+    try:
+        collection = get_collection("menu_items")
+    except Exception:
+        # MongoDB unavailable - return demo data
+        if request.method == "GET":
+            return JsonResponse({"items": DEMO_MENU_ITEMS})
+        return JsonResponse({"error": "Database unavailable"}, status=503)
 
     if request.method == "GET":
         items = list(collection.find({"user_id": user["user_id"]}).sort("created_at", -1))
@@ -144,6 +166,7 @@ def menu_detail(request, item_id):
                 "category": category,
                 "desc": desc,
                 "available": available,
+                "emoji": data.get("emoji", item.get("emoji", "🍽️")),
             }}
         )
         return JsonResponse({"message": "Menu item updated"})

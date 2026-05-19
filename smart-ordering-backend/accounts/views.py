@@ -121,8 +121,31 @@ def login(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    users = get_collection("users")
-    user = users.find_one({"email": email})
+    # ── Demo mode: bypass MongoDB for testing ─────────────────────────────────
+    # Use email: demo@taybletap.com / password: demo123
+    if email == "demo@taybletap.com" and password == "demo123":
+        demo_user = {
+            "_id": "demo-user-id-123",
+            "name": "Demo User",
+            "email": "demo@taybletap.com",
+            "phone": "+1234567890",
+            "restaurant_name": "Demo Restaurant",
+            "city": "New York",
+            "restaurant_type": "Casual Dining",
+        }
+        token = _generate_token(demo_user["_id"], demo_user["email"])
+        return Response(_user_response(demo_user, token), status=status.HTTP_200_OK)
+
+    # ── Normal MongoDB login ───────────────────────────────────────────────────
+    try:
+        users = get_collection("users")
+        user = users.find_one({"email": email})
+    except Exception as e:
+        # MongoDB unavailable - return error
+        return Response(
+            {"error": "Database unavailable. Try demo@taybletap.com / demo123"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     if not user:
         return Response(
@@ -195,3 +218,50 @@ def me(request):
         },
         status=status.HTTP_200_OK,
     )
+
+
+# ─── UPDATE PROFILE ────────────────────────────────────────────────────────────
+@api_view(["PATCH"])
+def profile_update(request):
+    """
+    PATCH /api/auth/profile/
+    Headers: Authorization: Bearer <token>
+    Body: { name?, phone?, restaurant_name?, city?, restaurant_type? }
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    data = request.data
+    users = get_collection("users")
+    from bson import ObjectId
+
+    update_fields = {}
+    allowed_fields = ["name", "phone", "restaurant_name", "city", "restaurant_type"]
+    for field in allowed_fields:
+        if field in data:
+            update_fields[field] = data[field]
+
+    if not update_fields:
+        return Response({"error": "No valid fields to update"}, status=status.HTTP_400_BAD_REQUEST)
+
+    users.update_one({"_id": ObjectId(payload["user_id"])}, {"$set": update_fields})
+    user = users.find_one({"_id": ObjectId(payload["user_id"])})
+
+    return Response({
+        "user": {
+            "id": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user["email"],
+            "phone": user.get("phone", ""),
+            "restaurant_name": user.get("restaurant_name", ""),
+            "city": user.get("city", ""),
+            "restaurant_type": user.get("restaurant_type", ""),
+        }
+    }, status=status.HTTP_200_OK)

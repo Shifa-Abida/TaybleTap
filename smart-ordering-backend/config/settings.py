@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     # Local
     'accounts',
     'menu',
+    'tables',
 ]
 
 
@@ -71,6 +72,9 @@ MONGODB_NAME = os.getenv('MONGODB_NAME', 'taybletap')
 # JWT Secret
 JWT_SECRET = os.getenv('JWT_SECRET', 'change-me-in-production')
 JWT_EXPIRY_HOURS = 72  # Token valid for 3 days
+
+# Frontend URL for QR codes
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 
 # ─── Django Database (kept for admin/sessions — not used for app data) ─────────

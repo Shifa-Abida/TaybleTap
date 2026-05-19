@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#E8602E";
@@ -277,7 +278,7 @@ function DeleteConfirm({ item, onConfirm, onClose }: { item: any; onConfirm: () 
   );
 }
 
-function MenuCard({ item, onEdit, onDelete, onToggle }: { item: any; onEdit: (item: any) => void; onDelete: (item: any) => void; onToggle: (id: number) => void }) {
+function MenuCard({ item, onEdit, onDelete, onToggle }: { item: any; onEdit: (item: any) => void; onDelete: (item: any) => void; onToggle: (id: string) => void }) {
   const [hovered, setHovered] = useState(false);
   const catC = CATEGORY_COLORS[item.category as keyof typeof CATEGORY_COLORS] || {};
 
@@ -376,6 +377,7 @@ function MenuCard({ item, onEdit, onDelete, onToggle }: { item: any; onEdit: (it
 
 export default function MenuManagement() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -388,7 +390,7 @@ export default function MenuManagement() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      window.location.href = "/login";
+      router.push("/login");
     }
   }, [isLoading, user]);
 
@@ -398,23 +400,25 @@ export default function MenuManagement() {
     }
   }, [user]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   const fetchMenuItems = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8000/api/menu/", {
+      const res = await fetch(`${API_URL}/api/menu/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
         if (data.items && data.items.length === 0) {
           for (const item of DEFAULT_ITEMS) {
-            await fetch("http://localhost:8000/api/menu/", {
+            await fetch(`${API_URL}/api/menu/`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify(item),
             });
           }
-          const retryRes = await fetch("http://localhost:8000/api/menu/", {
+          const retryRes = await fetch(`${API_URL}/api/menu/`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const retryData = await retryRes.json();
@@ -452,7 +456,7 @@ export default function MenuManagement() {
     if (!form.name || !form.price) return;
 
     const token = localStorage.getItem("token");
-    const url = modal === "add" ? "http://localhost:8000/api/menu/" : `http://localhost:8000/api/menu/${editItem.id}/`;
+    const url = modal === "add" ? `${API_URL}/api/menu/` : `${API_URL}/api/menu/${editItem.id}/`;
     const method = modal === "add" ? "POST" : "PUT";
 
     try {
@@ -467,6 +471,8 @@ export default function MenuManagement() {
           price: Number(form.price),
           category: form.category,
           desc: form.desc,
+          emoji: form.imagePreview?.startsWith('data:image') ? '' : (form.imagePreview?.emoji || '🍽️'),
+          imagePreview: form.imagePreview,
           available: form.available,
         }),
       });
@@ -484,7 +490,7 @@ export default function MenuManagement() {
   const handleDelete = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:8000/api/menu/${deleteItem.id}/`, {
+      const res = await fetch(`${API_URL}/api/menu/${deleteItem.id}/`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -497,10 +503,10 @@ export default function MenuManagement() {
     }
   };
 
-  const handleToggle = async (id: number) => {
+  const handleToggle = async (id: string) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:8000/api/menu/${id}/toggle/`, {
+      const res = await fetch(`${API_URL}/api/menu/${id}/toggle/`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });

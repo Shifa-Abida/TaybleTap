@@ -16,10 +16,10 @@ FRONTEND_URL = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
 
 # Demo tables for when MongoDB is unavailable
 DEMO_TABLES = [
-    {"id": "demo-t1", "table_number": 1, "table_name": "Table 1", "is_active": True, "qr_url": f"{FRONTEND_URL}/menu?resto=demo&table=1", "qr_code": ""},
-    {"id": "demo-t2", "table_number": 2, "table_name": "Table 2", "is_active": True, "qr_url": f"{FRONTEND_URL}/menu?resto=demo&table=2", "qr_code": ""},
-    {"id": "demo-t3", "table_number": 3, "table_name": "Table 3", "is_active": True, "qr_url": f"{FRONTEND_URL}/menu?resto=demo&table=3", "qr_code": ""},
-    {"id": "demo-t4", "table_number": 4, "table_name": "VIP Table", "is_active": True, "qr_url": f"{FRONTEND_URL}/menu?resto=demo&table=4", "qr_code": ""},
+    {"id": "demo-t1", "table_number": 1, "table_name": "Table 1", "is_active": True, "qr_url": f"{FRONTEND_URL}/customer/menu?resto=demo&table=1", "qr_code": ""},
+    {"id": "demo-t2", "table_number": 2, "table_name": "Table 2", "is_active": True, "qr_url": f"{FRONTEND_URL}/customer/menu?resto=demo&table=2", "qr_code": ""},
+    {"id": "demo-t3", "table_number": 3, "table_name": "Table 3", "is_active": True, "qr_url": f"{FRONTEND_URL}/customer/menu?resto=demo&table=3", "qr_code": ""},
+    {"id": "demo-t4", "table_number": 4, "table_name": "VIP Table", "is_active": True, "qr_url": f"{FRONTEND_URL}/customer/menu?resto=demo&table=4", "qr_code": ""},
 ]
 
 
@@ -40,8 +40,8 @@ def get_user_from_token(request):
 
 def generate_qr_code(restaurant_id: str, table_number: int) -> str:
     """Generate a QR code as base64 PNG image."""
-    # URL that customer will scan
-    qr_url = f"{FRONTEND_URL}/menu?resto={restaurant_id}&table={table_number}"
+    # URL that customer will scan — points to customer-facing menu page
+    qr_url = f"{FRONTEND_URL}/customer/menu?resto={restaurant_id}&table={table_number}"
 
     # Generate QR code
     qr = qrcode.QRCode(
@@ -121,8 +121,8 @@ def tables_list(request):
         if existing:
             return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
 
-        # Generate QR code
-        qr_url = f"{FRONTEND_URL}/menu?resto={user['user_id']}&table={table_number}"
+        # Generate QR code pointing to customer-facing menu
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
         qr_code = generate_qr_code(user["user_id"], table_number)
 
         table_doc = {
@@ -194,8 +194,8 @@ def tables_detail(request, table_id):
             if existing:
                 return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
 
-        # Regenerate QR code if table number changed
-        qr_url = f"{FRONTEND_URL}/menu?resto={user['user_id']}&table={table_number}"
+        # Regenerate QR code pointing to customer-facing menu
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
         qr_code = generate_qr_code(user["user_id"], table_number)
 
         collection.update_one(
@@ -285,7 +285,7 @@ def tables_generate_all(request):
     regenerated = 0
     for table in tables:
         table_number = table.get("table_number")
-        qr_url = f"{FRONTEND_URL}/menu?resto={user['user_id']}&table={table_number}"
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
         qr_code = generate_qr_code(user["user_id"], table_number)
 
         collection.update_one(

@@ -252,6 +252,64 @@ function LogoUpload({ logo, onUpload }: { logo: string | null; onUpload: (v: str
   );
 }
 
+function PaymentQRUpload({ qr, onUpload }: { qr: string | null; onUpload: (v: string | null) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File | undefined) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = e => onUpload(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        style={{
+          width: 150, height: 150, borderRadius: 18, overflow: "hidden", flexShrink: 0,
+          border: `2px dashed ${BORDER}`, background: qr ? "white" : PRIMARY_SOFT,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", padding: qr ? 8 : 0,
+        }}
+      >
+        {qr ? (
+          <img src={qr} alt="payment QR" style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 12 }} />
+        ) : (
+          <QrCode size={42} color={PRIMARY} />
+        )}
+      </button>
+      <div>
+        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>Payment QR Code</p>
+        <p style={{ margin: "0 0 12px", fontSize: 12, color: MUTED, maxWidth: 360 }}>
+          Upload the QR customers should scan before placing an order.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => fileRef.current?.click()} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "7px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 600,
+            background: PRIMARY, color: "white", border: "none", cursor: "pointer",
+          }}>
+            <Upload size={13} /> Upload QR
+          </button>
+          {qr && (
+            <button onClick={() => onUpload(null)} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "7px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
+              background: "transparent", color: TEXT_SECONDARY, border: `1px solid ${BORDER}`, cursor: "pointer",
+            }}>
+              <Trash2 size={12} /> Remove
+            </button>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+          onChange={e => handleFile(e.target.files?.[0])} />
+      </div>
+    </div>
+  );
+}
+
 function TimePicker({ label, value, onChange }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -301,12 +359,25 @@ function NotifRow({ label, desc, checked, onChange }: { label: string; desc: str
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+function readStoredUserPayment() {
+  if (typeof window === "undefined") return { payment_qr_code: "", payment_code: "" };
+  try {
+    const stored = window.localStorage.getItem("user");
+    return stored ? JSON.parse(stored) as { payment_qr_code?: string; payment_code?: string } : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function RestaurantSettings() {
   const { user, isLoading, updateUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const profileUser = user as typeof user & { payment_qr_code?: string; payment_code?: string };
 
   const [logo, setLogo] = useState<string | null>(null);
+  const [paymentQrCode, setPaymentQrCode] = useState<string | null>(() => profileUser?.payment_qr_code || readStoredUserPayment().payment_qr_code || null);
+  const [paymentCode, setPaymentCode] = useState(() => profileUser?.payment_code || readStoredUserPayment().payment_code || "PAID123");
   const [restaurantName, setRestaurantName] = useState(user?.restaurant_name || "Spice Garden");
   const [cuisineType, setCuisineType] = useState("North Indian · Multi-Cuisine");
   const [description, setDescription] = useState("Authentic flavors from across India, served fresh every day.");
@@ -369,6 +440,8 @@ export default function RestaurantSettings() {
           restaurant_name: restaurantName,
           city,
           restaurant_type: cuisineType,
+          payment_qr_code: paymentQrCode || "",
+          payment_code: paymentCode.trim(),
         }),
       });
       const data = await res.json();
@@ -389,6 +462,7 @@ export default function RestaurantSettings() {
     { id: "profile", label: "Restaurant Profile" },
     { id: "owner", label: "Owner Information" },
     { id: "details", label: "Business Details" },
+    { id: "payment", label: "Payment Setup" },
     { id: "security", label: "Security" },
     { id: "notifications", label: "Notifications" },
     { id: "danger", label: "Danger Zone" },
@@ -552,6 +626,29 @@ export default function RestaurantSettings() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </SectionCard>
+              </div>
+
+              {/* Payment Setup */}
+              <div id="section-payment">
+                <SectionCard title="Payment Setup" subtitle="Prototype payment verification for customer checkout" icon={QrCode}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <div style={{ background: PRIMARY_SOFT, border: `1px solid ${PRIMARY_BORDER}`, borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <QrCode size={15} color={PRIMARY} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <p style={{ margin: 0, fontSize: 12.5, color: TEXT_SECONDARY, lineHeight: 1.5 }}>
+                        For prototype testing, customers scan this QR and enter the verification code below. This does not verify a real payment provider.
+                      </p>
+                    </div>
+                    <PaymentQRUpload qr={paymentQrCode} onUpload={setPaymentQrCode} />
+                    <Field
+                      label="Prototype Payment Code"
+                      icon={CheckCircle}
+                      value={paymentCode}
+                      onChange={e => setPaymentCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. PAID123"
+                      hint="Give this code to testers after they pretend to complete payment."
+                    />
                   </div>
                 </SectionCard>
               </div>

@@ -14,12 +14,14 @@ def get_db():
     """Get the MongoDB database instance (singleton with reconnect support)."""
     global _client, _db
     if _db is None:
+        import certifi
         _client = MongoClient(
             settings.MONGODB_URI,
             serverSelectionTimeoutMS=5000,
             connectTimeoutMS=5000,
             socketTimeoutMS=10000,
             retryWrites=True,
+            tlsCAFile=certifi.where()
         )
         _db = _client[settings.MONGODB_NAME]
     return _db

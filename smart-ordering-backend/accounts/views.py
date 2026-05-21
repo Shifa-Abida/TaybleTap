@@ -36,7 +36,9 @@ def _user_response(user: dict, token: str) -> dict:
             "phone": user.get("phone", ""),
             "restaurant_name": user.get("restaurant_name", ""),
             "city": user.get("city", ""),
-            "restaurant_type": user.get("restaurant_type", ""),
+        "restaurant_type": user.get("restaurant_type", ""),
+        "payment_qr_code": user.get("payment_qr_code", ""),
+        "payment_code": user.get("payment_code", ""),
         },
     }
 
@@ -214,6 +216,8 @@ def me(request):
                 "restaurant_name": user.get("restaurant_name", ""),
                 "city": user.get("city", ""),
                 "restaurant_type": user.get("restaurant_type", ""),
+                "payment_qr_code": user.get("payment_qr_code", ""),
+                "payment_code": user.get("payment_code", ""),
             }
         },
         status=status.HTTP_200_OK,
@@ -243,7 +247,15 @@ def profile_update(request):
     from bson import ObjectId
 
     update_fields = {}
-    allowed_fields = ["name", "phone", "restaurant_name", "city", "restaurant_type"]
+    allowed_fields = [
+        "name",
+        "phone",
+        "restaurant_name",
+        "city",
+        "restaurant_type",
+        "payment_qr_code",
+        "payment_code",
+    ]
     for field in allowed_fields:
         if field in data:
             update_fields[field] = data[field]
@@ -263,5 +275,7 @@ def profile_update(request):
             "restaurant_name": user.get("restaurant_name", ""),
             "city": user.get("city", ""),
             "restaurant_type": user.get("restaurant_type", ""),
+            "payment_qr_code": user.get("payment_qr_code", ""),
+            "payment_code": user.get("payment_code", ""),
         }
     }, status=status.HTTP_200_OK)

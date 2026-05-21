@@ -66,16 +66,33 @@ function TableCard({ table, onEdit, onDelete, onToggle, onDownload }: {
         padding: 16,
       }}>
         {table.qr_code ? (
-          <img
-            src={table.qr_code}
-            alt={`Table ${table.table_number} QR`}
+          <a
+            href={table.qr_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Open customer menu for Table ${table.table_number}`}
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "contain",
+              display: "block",
               borderRadius: 8,
+              cursor: "pointer",
+              outline: "none",
+              textDecoration: "none",
             }}
-          />
+          >
+            <img
+              src={table.qr_code}
+              alt={`Table ${table.table_number} QR`}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                borderRadius: 8,
+                display: "block",
+              }}
+            />
+          </a>
         ) : (
           <span style={{ fontSize: 48 }}>⬛</span>
         )}

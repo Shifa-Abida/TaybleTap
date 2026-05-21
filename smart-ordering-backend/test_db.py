@@ -10,8 +10,9 @@ if not uri:
     sys.exit(1)
 
 print(f"Connecting to: {uri}")
+import certifi
 try:
-    client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+    client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsCAFile=certifi.where())
     client.admin.command('ping')
     print("Successfully connected to MongoDB!")
     

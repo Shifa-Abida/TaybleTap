@@ -41,6 +41,13 @@ export const API_ENDPOINTS = {
   TABLE_TOGGLE: (id: string) => `${API_URL}/api/tables/${id}/toggle/`,
   TABLE_QR: (id: string) => `${API_URL}/api/tables/${id}/qr/`,
   TABLES_GENERATE_ALL: `${API_URL}/api/tables/generate-all/`,
+
+  // Customer (public — no auth required)
+  CUSTOMER_MENU: (restoId: string) => `${API_URL}/api/customer/menu/?resto=${restoId}`,
+  CUSTOMER_RESTAURANT: (restoId: string) => `${API_URL}/api/customer/restaurant/?resto=${restoId}`,
+  CUSTOMER_ORDER: `${API_URL}/api/customer/order/`,
+  CUSTOMER_ORDER_STATUS: (orderId: string, restoId: string) =>
+    `${API_URL}/api/customer/order/${orderId}/?resto=${restoId}`,
 };
 
 export default API_URL;

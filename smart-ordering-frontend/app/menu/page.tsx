@@ -23,7 +23,7 @@ const CATEGORY_COLORS = {
   Desserts: { bg: "rgba(236,72,153,0.1)",  color: "#DB2777" },
 };
 
-const EMPTY_FORM = { name: "", price: "", category: "Starters", desc: "", image: null, imagePreview: null, available: true };
+const EMPTY_FORM = { name: "", price: "", category: "Starters", desc: "", image: null as File | null, imagePreview: null as string | null, available: true };
 
 const DEFAULT_ITEMS = [
   { name: "Chicken Biryani",      emoji: "🍚", price: 280, category: "Biryani",  desc: "Aromatic basmati rice with tender chicken & spices",    available: true  },
@@ -471,7 +471,7 @@ export default function MenuManagement() {
           price: Number(form.price),
           category: form.category,
           desc: form.desc,
-          emoji: form.imagePreview?.startsWith('data:image') ? '' : (form.imagePreview?.emoji || '🍽️'),
+          emoji: typeof form.imagePreview === "string" && form.imagePreview.startsWith("data:image") ? "" : "🍽️",
           imagePreview: form.imagePreview,
           available: form.available,
         }),

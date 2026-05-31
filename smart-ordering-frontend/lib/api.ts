@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
 
   // Menu
   MENU: `${API_URL}/api/menu/`,
+  MENU_LOW_STOCK: `${API_URL}/api/menu/low-stock/`,
   MENU_ITEM: (id: string) => `${API_URL}/api/menu/${id}/`,
   MENU_TOGGLE: (id: string) => `${API_URL}/api/menu/${id}/toggle/`,
 

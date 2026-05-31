@@ -221,6 +221,10 @@ def seed_menu(restaurant_id: str):
                 "desc": item["desc"],
                 "emoji": item["emoji"],
                 "available": item["available"],
+                "is_available": item["available"],
+                "stock_quantity": 0,
+                "low_stock_threshold": 5,
+                "track_stock": False,
                 "created_at": now,
                 "updated_at": now,
             }

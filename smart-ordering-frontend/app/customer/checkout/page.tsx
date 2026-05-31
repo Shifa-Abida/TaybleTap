@@ -18,6 +18,14 @@ interface CartItem {
   price: number;
   emoji: string;
   quantity: number;
+  available?: boolean;
+  stock_quantity?: number;
+}
+
+interface MenuStockItem {
+  id: string;
+  available: boolean;
+  stock_quantity?: number;
 }
 
 interface CustomerProfile {
@@ -78,6 +86,20 @@ function CheckoutInner() {
           setRestaurantName(data.restaurant_name || "Restaurant");
           setPaymentQrCode(data.payment_qr_code || "");
         }
+
+        const menuRes = await fetch(`${API_URL}/api/customer/menu/?resto=${restaurantId}`);
+        if (menuRes.ok) {
+          const menuData = await menuRes.json();
+          const menuItems: MenuStockItem[] = Array.isArray(menuData.items) ? menuData.items : [];
+          setCart((prev) => prev.map((item) => {
+            const liveItem = menuItems.find((menuItem) => menuItem.id === item.id);
+            return {
+              ...item,
+              available: liveItem?.available ?? false,
+              stock_quantity: liveItem?.stock_quantity,
+            };
+          }));
+        }
       } catch {
         // Keep default checkout values for prototype fallback.
       } finally {
@@ -90,12 +112,19 @@ function CheckoutInner() {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const canPlaceOrder = cart.length > 0 && paymentCode.trim().length > 0 && !placingOrder;
+  const stockIssue = cart.find((item) =>
+    item.available === false || (item.stock_quantity !== undefined && item.quantity > item.stock_quantity)
+  );
+  const canPlaceOrder = cart.length > 0 && paymentCode.trim().length > 0 && !placingOrder && !stockIssue;
 
   const updateCartQuantity = (id: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item)
+        .map((item) => {
+          if (item.id !== id) return item;
+          if (delta > 0 && (item.available === false || (item.stock_quantity !== undefined && item.quantity >= item.stock_quantity))) return item;
+          return { ...item, quantity: item.quantity + delta };
+        })
         .filter((item) => item.quantity > 0)
     );
   };
@@ -114,6 +143,7 @@ function CheckoutInner() {
           customer_name: customerProfile?.name || "",
           payment_code: paymentCode.trim(),
           items: cart.map((item) => ({
+            id: item.id,
             name: item.name,
             price: item.price,
             qty: item.quantity,
@@ -223,6 +253,10 @@ function CheckoutInner() {
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>{item.name}</p>
                 <p style={{ margin: 0, fontSize: 11, color: TEXT_MUTED }}>₹{item.price} × {item.quantity}</p>
+                {item.available === false && <p style={{ margin: "3px 0 0", fontSize: 11, color: "#E53E3E", fontWeight: 700 }}>Out Of Stock</p>}
+                {item.available !== false && item.stock_quantity !== undefined && item.stock_quantity <= 5 && (
+                  <p style={{ margin: "3px 0 0", fontSize: 11, color: "#D97706", fontWeight: 700 }}>Only {item.stock_quantity} left</p>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <button onClick={() => updateCartQuantity(item.id, -1)} style={{
@@ -230,9 +264,13 @@ function CheckoutInner() {
                   background: "white", fontSize: 14, color: TEXT_PRIMARY, cursor: "pointer",
                 }}>−</button>
                 <span style={{ fontSize: 13, fontWeight: 700, minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
-                <button onClick={() => updateCartQuantity(item.id, 1)} style={{
+                <button
+                  onClick={() => updateCartQuantity(item.id, 1)}
+                  disabled={item.available === false || (item.stock_quantity !== undefined && item.quantity >= item.stock_quantity)}
+                  style={{
                   width: 26, height: 26, borderRadius: 7, border: "none",
-                  background: PRIMARY, color: "white", fontSize: 14, cursor: "pointer",
+                  background: item.available === false || (item.stock_quantity !== undefined && item.quantity >= item.stock_quantity) ? TEXT_MUTED : PRIMARY,
+                  color: "white", fontSize: 14, cursor: "pointer",
                 }}>+</button>
               </div>
               <span style={{ fontSize: 14, fontWeight: 700, color: TEXT_PRIMARY, minWidth: 48, textAlign: "right" }}>
@@ -245,6 +283,11 @@ function CheckoutInner() {
             <span style={{ fontSize: 16, fontWeight: 700, color: TEXT_PRIMARY }}>Total</span>
             <span style={{ fontSize: 22, fontWeight: 800, color: PRIMARY }}>₹{cartTotal}</span>
           </div>
+          {stockIssue && (
+            <p style={{ margin: "12px 0 0", color: "#E53E3E", fontSize: 12, fontWeight: 700 }}>
+              {stockIssue.available === false ? `${stockIssue.name} is unavailable.` : `Only ${stockIssue.stock_quantity} left for ${stockIssue.name}.`}
+            </p>
+          )}
         </section>
 
         <section style={{ background: "white", borderRadius: 20, border: `1px solid ${BORDER}`, padding: 24, textAlign: "center", marginBottom: 16 }}>

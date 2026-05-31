@@ -1,20 +1,31 @@
+import json
+
 import jwt
+from bson import ObjectId
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from bson import ObjectId
+
 from accounts.db import get_collection
+from .inventory import admin_inventory_fields, inventory_document, is_available, is_low_stock
 
 CATEGORIES = ["Starters", "Biryani", "Curries", "Breads", "Drinks", "Desserts"]
+INVENTORY_PATCH_FIELDS = {
+    "stock_quantity",
+    "low_stock_threshold",
+    "track_stock",
+    "is_available",
+    "available",
+}
 
-# Demo menu items for when MongoDB is unavailable
+# Demo menu items for when MongoDB is unavailable.
 DEMO_MENU_ITEMS = [
-    {"id": "demo-1", "name": "Chicken Biryani", "price": 250, "category": "Biryani", "desc": " aromatic basmati rice with spiced chicken", "emoji": "🍚", "available": True},
-    {"id": "demo-2", "name": "Palak Paneer", "price": 180, "category": "Curries", "desc": "Cottage cheese in spinach gravy", "emoji": "🥬", "available": True},
-    {"id": "demo-3", "name": "Butter Chicken", "price": 320, "category": "Curries", "desc": "Creamy tomato-based chicken curry", "emoji": "🍗", "available": True},
-    {"id": "demo-4", "name": "Garlic Naan", "price": 40, "category": "Breads", "desc": "Soft bread with garlic butter", "emoji": "🫓", "available": True},
-    {"id": "demo-5", "name": "Mango Lassi", "price": 60, "category": "Drinks", "desc": "Sweet yogurt mango drink", "emoji": "🥭", "available": True},
-    {"id": "demo-6", "name": "Gulab Jamun", "price": 50, "category": "Desserts", "desc": "Sweet milk dumplings in syrup", "emoji": "🍰", "available": True},
+    {"id": "demo-1", "name": "Chicken Biryani", "price": 250, "category": "Biryani", "desc": "Aromatic basmati rice with spiced chicken", "emoji": "", "available": True},
+    {"id": "demo-2", "name": "Palak Paneer", "price": 180, "category": "Curries", "desc": "Cottage cheese in spinach gravy", "emoji": "", "available": True},
+    {"id": "demo-3", "name": "Butter Chicken", "price": 320, "category": "Curries", "desc": "Creamy tomato-based chicken curry", "emoji": "", "available": True},
+    {"id": "demo-4", "name": "Garlic Naan", "price": 40, "category": "Breads", "desc": "Soft bread with garlic butter", "emoji": "", "available": True},
+    {"id": "demo-5", "name": "Mango Lassi", "price": 60, "category": "Drinks", "desc": "Sweet yogurt mango drink", "emoji": "", "available": True},
+    {"id": "demo-6", "name": "Gulab Jamun", "price": 50, "category": "Desserts", "desc": "Sweet milk dumplings in syrup", "emoji": "", "available": True},
 ]
 
 
@@ -25,100 +36,104 @@ def get_user_from_token(request):
         return None
     token = auth_header.split(" ", 1)[1]
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-        return payload
-    except jwt.ExpiredSignatureError:
+        return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         return None
-    except jwt.InvalidTokenError:
+
+
+def _load_json(request):
+    try:
+        return json.loads(request.body)
+    except json.JSONDecodeError:
         return None
+
+
+def _format_menu_item(item):
+    return {
+        "id": str(item["_id"]) if "_id" in item else item.get("id", ""),
+        "name": item.get("name", ""),
+        "price": item.get("price", 0),
+        "category": item.get("category", "Starters"),
+        "desc": item.get("desc", ""),
+        "emoji": item.get("emoji", ""),
+        "imagePreview": item.get("imagePreview"),
+        **admin_inventory_fields(item),
+    }
+
+
+def _validate_menu_fields(data):
+    name = str(data.get("name", "")).strip()
+    price = data.get("price")
+    category = data.get("category", "Starters")
+    if not name:
+        raise ValueError("Item name is required")
+    if isinstance(price, bool) or not isinstance(price, (int, float)) or price < 0:
+        raise ValueError("Valid price is required")
+    if category not in CATEGORIES:
+        raise ValueError("Invalid category")
+    return name, float(price), category
 
 
 @csrf_exempt
 def menu_list(request):
-    """GET: List all menu items for the authenticated user.
-       POST: Create a new menu item."""
+    """GET: list menu items. POST: create a menu item."""
     user = get_user_from_token(request)
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    # Demo mode: return mock data for demo user
     if user.get("user_id") == "demo-user-id-123":
         if request.method == "GET":
-            return JsonResponse({"items": DEMO_MENU_ITEMS})
+            return JsonResponse({"items": [_format_menu_item(item) for item in DEMO_MENU_ITEMS]})
         return JsonResponse({"error": "Demo mode - create not supported"}, status=403)
 
     try:
         collection = get_collection("menu_items")
     except Exception:
-        # MongoDB unavailable - return demo data
         if request.method == "GET":
-            return JsonResponse({"items": DEMO_MENU_ITEMS})
+            return JsonResponse({"items": [_format_menu_item(item) for item in DEMO_MENU_ITEMS]})
         return JsonResponse({"error": "Database unavailable"}, status=503)
 
     if request.method == "GET":
-        items = list(collection.find({"user_id": user["user_id"]}).sort("created_at", -1))
-        result = []
-        for item in items:
-            result.append({
-                "id": str(item["_id"]),
-                "name": item.get("name", ""),
-                "price": item.get("price", 0),
-                "category": item.get("category", "Starters"),
-                "desc": item.get("desc", ""),
-                "emoji": item.get("emoji", "🍽️"),
-                "imagePreview": item.get("imagePreview"),
-                "available": item.get("available", True),
-            })
-        return JsonResponse({"items": result})
+        items = collection.find({"user_id": user["user_id"]}).sort("created_at", -1)
+        return JsonResponse({"items": [_format_menu_item(item) for item in items]})
 
-    elif request.method == "POST":
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
+    if request.method == "POST":
+        data = _load_json(request)
+        if data is None:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-        name = data.get("name", "").strip()
-        price = data.get("price")
-        category = data.get("category", "Starters")
-        desc = data.get("desc", "").strip()
-        available = data.get("available", True)
-
-        if not name:
-            return JsonResponse({"error": "Item name is required"}, status=400)
-        if price is None or not isinstance(price, (int, float)) or price < 0:
-            return JsonResponse({"error": "Valid price is required"}, status=400)
-        if category not in CATEGORIES:
-            return JsonResponse({"error": "Invalid category"}, status=400)
+        try:
+            name, price, category = _validate_menu_fields(data)
+            inventory = inventory_document(data)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
 
         menu_item = {
             "user_id": user["user_id"],
             "name": name,
-            "price": float(price),
+            "price": price,
             "category": category,
-            "desc": desc,
-            "emoji": data.get("emoji", "🍽️"),
+            "desc": str(data.get("desc", "")).strip(),
+            "emoji": data.get("emoji", ""),
             "imagePreview": None,
-            "available": available,
+            **inventory,
             "created_at": "now",
         }
         result = collection.insert_one(menu_item)
-        menu_item["id"] = str(result.inserted_id)
-        del menu_item["_id"]
-        del menu_item["user_id"]
-        del menu_item["created_at"]
-        return JsonResponse(menu_item, status=201)
+        menu_item["_id"] = result.inserted_id
+        return JsonResponse(_format_menu_item(menu_item), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
 def menu_detail(request, item_id):
-    """GET/PUT/DELETE a specific menu item."""
+    """GET/PUT/PATCH/DELETE a specific menu item."""
     user = get_user_from_token(request)
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
     collection = get_collection("menu_items")
-
     try:
         oid = ObjectId(item_id)
     except Exception:
@@ -129,62 +144,61 @@ def menu_detail(request, item_id):
         return JsonResponse({"error": "Item not found"}, status=404)
 
     if request.method == "GET":
-        return JsonResponse({
-            "id": str(item["_id"]),
-            "name": item.get("name", ""),
-            "price": item.get("price", 0),
-            "category": item.get("category", "Starters"),
-            "desc": item.get("desc", ""),
-            "emoji": item.get("emoji", "🍽️"),
-            "imagePreview": item.get("imagePreview"),
-            "available": item.get("available", True),
-        })
+        return JsonResponse(_format_menu_item(item))
 
-    elif request.method == "PUT":
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
+    if request.method == "PUT":
+        data = _load_json(request)
+        if data is None:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+        try:
+            name, price, category = _validate_menu_fields(data)
+            inventory = inventory_document(data, item)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
 
-        name = data.get("name", "").strip()
-        price = data.get("price")
-        category = data.get("category", "Starters")
-        desc = data.get("desc", "").strip()
-        available = data.get("available", True)
+        updates = {
+            "name": name,
+            "price": price,
+            "category": category,
+            "desc": str(data.get("desc", "")).strip(),
+            "emoji": data.get("emoji", item.get("emoji", "")),
+            **inventory,
+        }
+        collection.update_one({"_id": oid}, {"$set": updates})
+        return JsonResponse(_format_menu_item({**item, **updates}))
 
-        if not name:
-            return JsonResponse({"error": "Item name is required"}, status=400)
-        if price is None or not isinstance(price, (int, float)) or price < 0:
-            return JsonResponse({"error": "Valid price is required"}, status=400)
+    if request.method == "PATCH":
+        data = _load_json(request)
+        if data is None:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        if not any(field in data for field in INVENTORY_PATCH_FIELDS):
+            return JsonResponse({"error": "No inventory fields supplied"}, status=400)
+        try:
+            updates = inventory_document(data, item)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
 
-        collection.update_one(
-            {"_id": oid},
-            {"$set": {
-                "name": name,
-                "price": float(price),
-                "category": category,
-                "desc": desc,
-                "available": available,
-                "emoji": data.get("emoji", item.get("emoji", "🍽️")),
-            }}
-        )
-        return JsonResponse({"message": "Menu item updated"})
+        collection.update_one({"_id": oid}, {"$set": updates})
+        return JsonResponse(_format_menu_item({**item, **updates}))
 
-    elif request.method == "DELETE":
+    if request.method == "DELETE":
         collection.delete_one({"_id": oid})
         return JsonResponse({"message": "Menu item deleted"})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
 def menu_toggle(request, item_id):
-    """PATCH: Toggle availability of a menu item."""
+    """PATCH: toggle availability of a menu item."""
+    if request.method != "PATCH":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
     user = get_user_from_token(request)
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
     collection = get_collection("menu_items")
-
     try:
         oid = ObjectId(item_id)
     except Exception:
@@ -194,7 +208,21 @@ def menu_toggle(request, item_id):
     if not item:
         return JsonResponse({"error": "Item not found"}, status=404)
 
-    current = item.get("available", True)
-    collection.update_one({"_id": oid}, {"$set": {"available": not current}})
+    updates = inventory_document({"is_available": not is_available(item)}, item)
+    collection.update_one({"_id": oid}, {"$set": updates})
+    return JsonResponse(_format_menu_item({**item, **updates}))
 
-    return JsonResponse({"available": not current})
+
+@csrf_exempt
+def low_stock_list(request):
+    """GET: list tracked menu items at or below their low-stock threshold."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    user = get_user_from_token(request)
+    if not user:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    collection = get_collection("menu_items")
+    items = collection.find({"user_id": user["user_id"], "track_stock": True}).sort("stock_quantity", 1)
+    return JsonResponse({"items": [_format_menu_item(item) for item in items if is_low_stock(item)]})

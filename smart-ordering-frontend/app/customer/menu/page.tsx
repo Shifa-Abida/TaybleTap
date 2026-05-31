@@ -77,6 +77,7 @@ interface MenuItem {
   image?: string;
   tags?: string[];
   popularity_score?: number;
+  stock_quantity?: number;
 }
 
 interface CartItem {
@@ -85,6 +86,8 @@ interface CartItem {
   price: number;
   emoji: string;
   quantity: number;
+  available: boolean;
+  stock_quantity?: number;
 }
 
 interface RestaurantInfo {
@@ -166,6 +169,7 @@ function localRecommendations(items: MenuItem[], rawQuery: string) {
   const query = rawQuery.toLowerCase();
   return items
     .filter((item) => {
+      if (!item.available) return false;
       const tags = tagsFor(item);
       const popularity = item.popularity_score ?? (isBestSeller(item) ? 88 : 65);
       if (/under\s*200|below\s*200|₹200|rs\.?\s*200/.test(query)) return item.price <= 200;
@@ -216,6 +220,7 @@ function FoodCard({
   justAdded: boolean;
 }) {
   const col = categoryColor(item);
+  const outOfStock = !item.available;
 
   return (
     <div
@@ -267,6 +272,16 @@ function FoodCard({
             🔥 Bestseller
           </div>
         )}
+        {outOfStock && (
+          <div style={{
+            position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(255,255,255,0.68)",
+          }}>
+            <span style={{ padding: "5px 10px", borderRadius: 999, background: "white", color: "#E53E3E", fontSize: 11, fontWeight: 900 }}>
+              OUT OF STOCK
+            </span>
+          </div>
+        )}
         <div style={{ position: "absolute", top: 10, right: 10 }}>
           <VegIcon veg={isVeg(item)} />
         </div>
@@ -278,17 +293,21 @@ function FoodCard({
           <StarRating rating={ratingFor(item)} />
         </div>
         <p style={{ margin: 0, fontSize: 11.5, color: TEXT_MUTED, lineHeight: 1.5, flex: 1 }}>{item.desc}</p>
+        {item.available && item.stock_quantity !== undefined && item.stock_quantity > 0 && item.stock_quantity <= 5 && (
+          <p style={{ margin: 0, color: "#D97706", fontSize: 11, fontWeight: 800 }}>Only {item.stock_quantity} left</p>
+        )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
           <span style={{ fontWeight: 800, fontSize: 16, color: TEXT_PRIMARY }}>₹{item.price}</span>
           <button
             onClick={() => onAdd(item)}
+            disabled={outOfStock}
             style={{
               width: 34,
               height: 34,
               borderRadius: 11,
-              background: justAdded ? GREEN : `linear-gradient(135deg, ${PRIMARY}, ${ACCENT})`,
+              background: outOfStock ? "#D1D5DB" : justAdded ? GREEN : `linear-gradient(135deg, ${PRIMARY}, ${ACCENT})`,
               border: "none",
-              cursor: "pointer",
+              cursor: outOfStock ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -343,9 +362,10 @@ function RecommendationCard({ item, onAdd }: { item: MenuItem; onAdd: (item: Men
       </div>
       <button
         onClick={() => onAdd(item)}
+        disabled={!item.available}
         style={{
-          width: 34, height: 34, borderRadius: 11, border: "none", cursor: "pointer",
-          background: `linear-gradient(135deg, ${PRIMARY}, ${ACCENT})`,
+          width: 34, height: 34, borderRadius: 11, border: "none", cursor: item.available ? "pointer" : "not-allowed",
+          background: item.available ? `linear-gradient(135deg, ${PRIMARY}, ${ACCENT})` : "#D1D5DB",
           color: "white", fontSize: 18, fontWeight: 900, flexShrink: 0,
         }}
       >
@@ -918,7 +938,6 @@ function CustomerMenuInner() {
   }, [restaurantId]);
 
   const filtered = useMemo(() => items.filter((item) => {
-    if (!item.available) return false;
     const matchCat = activeCategory === "all" || categoryId(item) === activeCategory;
     const needle = search.toLowerCase();
     const matchSearch = item.name.toLowerCase().includes(needle) || item.desc.toLowerCase().includes(needle);
@@ -955,9 +974,11 @@ function CustomerMenuInner() {
   };
 
   const addToCart = (item: MenuItem) => {
+    if (!item.available) return;
     setCart((prev) => {
       const existing = prev.find((cartItem) => cartItem.id === item.id);
       if (existing) {
+        if (item.stock_quantity !== undefined && existing.quantity >= item.stock_quantity) return prev;
         return prev.map((cartItem) =>
           cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
         );
@@ -969,6 +990,8 @@ function CustomerMenuInner() {
         price: item.price,
         emoji: item.emoji || "🍽️",
         quantity: 1,
+        available: item.available,
+        stock_quantity: item.stock_quantity,
       }];
     });
     setJustAdded((prev) => ({ ...prev, [item.id]: true }));
@@ -1090,7 +1113,11 @@ function CustomerMenuInner() {
   const updateQty = (id: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item)
+        .map((item) => {
+          if (item.id !== id) return item;
+          if (delta > 0 && item.stock_quantity !== undefined && item.quantity >= item.stock_quantity) return item;
+          return { ...item, quantity: item.quantity + delta };
+        })
         .filter((item) => item.quantity > 0)
     );
   };

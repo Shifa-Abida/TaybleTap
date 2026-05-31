@@ -22,7 +22,11 @@ def _generate_token(user_id: str, email: str) -> str:
               + datetime.timedelta(hours=settings.JWT_EXPIRY_HOURS),
         "iat": datetime.datetime.now(datetime.timezone.utc),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
+    # PyJWT v1 returns bytes, v2 returns str — normalize to str
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+    return token
 
 
 def _user_response(user: dict, token: str) -> dict:

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from bson import ObjectId
+from pymongo import ReturnDocument
 
 from .db import get_collection
 
@@ -49,7 +50,7 @@ def _make_order_id(user_id: str) -> str:
         {"_id": f"{ORDER_COUNTER_KEY}_{user_id}"},
         {"$inc": {"seq": 1}},
         upsert=True,
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
     seq = result["seq"]
     return f"#{seq:04d}"

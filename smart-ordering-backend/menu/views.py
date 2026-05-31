@@ -29,6 +29,10 @@ DEMO_MENU_ITEMS = [
 ]
 
 
+def _demo_menu_response():
+    return JsonResponse({"items": [_format_menu_item(item) for item in DEMO_MENU_ITEMS]})
+
+
 def get_user_from_token(request):
     """Extract user from Authorization: Bearer <token> header."""
     auth_header = request.headers.get("Authorization", "")
@@ -83,18 +87,21 @@ def menu_list(request):
 
     if user.get("user_id") == "demo-user-id-123":
         if request.method == "GET":
-            return JsonResponse({"items": [_format_menu_item(item) for item in DEMO_MENU_ITEMS]})
+            return _demo_menu_response()
         return JsonResponse({"error": "Demo mode - create not supported"}, status=403)
 
     try:
         collection = get_collection("menu_items")
     except Exception:
         if request.method == "GET":
-            return JsonResponse({"items": [_format_menu_item(item) for item in DEMO_MENU_ITEMS]})
+            return _demo_menu_response()
         return JsonResponse({"error": "Database unavailable"}, status=503)
 
     if request.method == "GET":
-        items = collection.find({"user_id": user["user_id"]}).sort("created_at", -1)
+        try:
+            items = list(collection.find({"user_id": user["user_id"]}).sort("created_at", -1))
+        except Exception:
+            return _demo_menu_response()
         return JsonResponse({"items": [_format_menu_item(item) for item in items]})
 
     if request.method == "POST":
@@ -222,7 +229,12 @@ def low_stock_list(request):
     user = get_user_from_token(request)
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
+    if user.get("user_id") == "demo-user-id-123":
+        return JsonResponse({"items": []})
 
-    collection = get_collection("menu_items")
-    items = collection.find({"user_id": user["user_id"], "track_stock": True}).sort("stock_quantity", 1)
+    try:
+        collection = get_collection("menu_items")
+        items = list(collection.find({"user_id": user["user_id"], "track_stock": True}).sort("stock_quantity", 1))
+    except Exception:
+        return JsonResponse({"items": []})
     return JsonResponse({"items": [_format_menu_item(item) for item in items if is_low_stock(item)]})

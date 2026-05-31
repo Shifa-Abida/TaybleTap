@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminLayout from "@/components/AdminLayout";
@@ -60,7 +60,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 export default function InventoryManagement() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [lowStockCount, setLowStockCount] = useState(0);
@@ -74,7 +74,7 @@ export default function InventoryManagement() {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, router, user]);
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setError("");
       const headers = getAuthHeaders();
@@ -82,6 +82,10 @@ export default function InventoryManagement() {
         fetch(API_ENDPOINTS.MENU, { headers }),
         fetch(API_ENDPOINTS.MENU_LOW_STOCK, { headers }),
       ]);
+      if (menuRes.status === 401 || lowStockRes.status === 401) {
+        await logout();
+        throw new Error("Your session expired. Please log in again.");
+      }
       if (!menuRes.ok) throw new Error("Could not load inventory.");
 
       const menuData = await menuRes.json();
@@ -93,7 +97,7 @@ export default function InventoryManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout]);
 
   useEffect(() => {
     if (!user) return;
@@ -101,7 +105,7 @@ export default function InventoryManagement() {
       void fetchInventory();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [user]);
+  }, [fetchInventory, user]);
 
   const openEdit = (item: InventoryItem) => {
     setEditing(item);

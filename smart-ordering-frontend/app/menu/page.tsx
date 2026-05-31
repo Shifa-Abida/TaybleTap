@@ -376,7 +376,7 @@ function MenuCard({ item, onEdit, onDelete, onToggle }: { item: any; onEdit: (it
 }
 
 export default function MenuManagement() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,6 +408,10 @@ export default function MenuManagement() {
       const res = await fetch(`${API_URL}/api/menu/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) {
+        await logout();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.items && data.items.length === 0) {
@@ -426,6 +430,8 @@ export default function MenuManagement() {
         } else {
           setItems(data.items || []);
         }
+      } else {
+        setItems([]);
       }
     } catch {
       setItems([]);

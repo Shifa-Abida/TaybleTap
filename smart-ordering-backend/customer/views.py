@@ -21,6 +21,13 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 from accounts.db import get_collection
+from menu.inventory import (
+    InventoryError,
+    is_available,
+    public_inventory_fields,
+    reserve_order_stock,
+    rollback_reserved_stock,
+)
 
 OTP_TTL_MINUTES = 5
 _OTP_FALLBACK_STORE = {}
@@ -98,7 +105,7 @@ def _format_menu_item(item):
         "desc": item.get("desc", ""),
         "image": item.get("image") or item.get("image_path") or item.get("imagePreview") or "",
         "emoji": item.get("emoji", "🍽️"),
-        "available": item.get("available", True),
+        **public_inventory_fields(item),
         "tags": _infer_tags(item),
         "popularity_score": _popularity_score(item),
     }
@@ -109,7 +116,8 @@ def _format_menu_item(item):
 def public_menu(request):
     """
     GET /api/customer/menu/?resto=<restaurant_id>
-    Returns only available menu items for the given restaurant.
+    Returns the public menu for the given restaurant, including unavailable
+    items so the customer UI can mark them as out of stock.
     No authentication required.
     """
     if request.method != "GET":
@@ -131,7 +139,6 @@ def public_menu(request):
         items = list(
             collection.find({
                 "user_id": restaurant_id,
-                "available": True,
             }).sort("category", 1)
         )
 
@@ -144,7 +151,7 @@ def public_menu(request):
                 "category": item.get("category", "Starters"),
                 "desc": item.get("desc", ""),
                 "emoji": item.get("emoji", "🍽️"),
-                "available": True,
+                **public_inventory_fields(item),
             })
 
         # Also fetch restaurant info for the header
@@ -193,12 +200,11 @@ def recommendations(request):
     try:
         raw_items = list(get_collection("menu_items").find({
             "user_id": restaurant_id,
-            "available": True,
         }))
     except Exception:
         raw_items = []
 
-    items = [_format_menu_item(item) for item in raw_items]
+    items = [_format_menu_item(item) for item in raw_items if is_available(item)]
 
     def matches(item):
         tags = set(item.get("tags", []))
@@ -481,35 +487,40 @@ def place_order(request):
     if expected_code and payment_code.upper() != expected_code.upper():
         return JsonResponse({"error": "Invalid payment verification code"}, status=400)
 
-    # Validate each item
+    # Validate each item before touching inventory.
     for item in items:
-        if not item.get("name") or not isinstance(item.get("price"), (int, float)):
-            return JsonResponse({"error": "Each item must have name and price"}, status=400)
+        if not item.get("id") and not item.get("name"):
+            return JsonResponse({"error": "Each item must include a menu item ID"}, status=400)
 
-    # Calculate total
-    total = sum(item.get("price", 0) * item.get("qty", 1) for item in items)
+    menu_items = get_collection("menu_items")
+    try:
+        validated_items, reserved_stock = reserve_order_stock(menu_items, restaurant_id, items)
+    except InventoryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
 
-    # Generate sequential order ID
-    order_id_str = _make_order_id(restaurant_id)
-
-    # Create the order
+    total = sum(item["price"] * item["qty"] for item in validated_items)
     orders = get_collection("orders")
-    order_doc = {
-        "user_id": restaurant_id,          # links to restaurant owner
-        "order_id": order_id_str,          # human-readable ID like #0001
-        "table": table,
-        "status": "Pending",
-        "items": items,
-        "total": total,
-        "customer_name": customer_name or f"Table {table}",
-        "source": "qr_scan",               # marks it as customer-initiated
-        "payment_verified": bool(expected_code),
-        "payment_code_entered": payment_code,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
+    try:
+        order_id_str = _make_order_id(restaurant_id)
+        order_doc = {
+            "user_id": restaurant_id,          # links to restaurant owner
+            "order_id": order_id_str,          # human-readable ID like #0001
+            "table": table,
+            "status": "Pending",
+            "items": validated_items,
+            "total": total,
+            "customer_name": customer_name or f"Table {table}",
+            "source": "qr_scan",               # marks it as customer-initiated
+            "payment_verified": bool(expected_code),
+            "payment_code_entered": payment_code,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        result = orders.insert_one(order_doc)
+    except Exception:
+        rollback_reserved_stock(menu_items, reserved_stock)
+        raise
 
-    result = orders.insert_one(order_doc)
     order_doc["_id"] = result.inserted_id
 
     return JsonResponse({
@@ -517,7 +528,7 @@ def place_order(request):
         "order_id": order_id_str,
         "table": table,
         "status": "Pending",
-        "items": items,
+        "items": validated_items,
         "total": total,
         "created_at": order_doc["created_at"].isoformat(),
     }, status=201)

@@ -126,7 +126,10 @@ def menu_list(request):
             **inventory,
             "created_at": "now",
         }
-        result = collection.insert_one(menu_item)
+        try:
+            result = collection.insert_one(menu_item)
+        except Exception:
+            return JsonResponse({"error": "Could not create menu item."}, status=500)
         menu_item["_id"] = result.inserted_id
         return JsonResponse(_format_menu_item(menu_item), status=201)
 
@@ -171,7 +174,10 @@ def menu_detail(request, item_id):
             "emoji": data.get("emoji", item.get("emoji", "")),
             **inventory,
         }
-        collection.update_one({"_id": oid}, {"$set": updates})
+        try:
+            collection.update_one({"_id": oid}, {"$set": updates})
+        except Exception:
+            return JsonResponse({"error": "Could not update menu item."}, status=500)
         return JsonResponse(_format_menu_item({**item, **updates}))
 
     if request.method == "PATCH":
@@ -185,11 +191,17 @@ def menu_detail(request, item_id):
         except ValueError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
 
-        collection.update_one({"_id": oid}, {"$set": updates})
+        try:
+            collection.update_one({"_id": oid}, {"$set": updates})
+        except Exception:
+            return JsonResponse({"error": "Could not update menu item."}, status=500)
         return JsonResponse(_format_menu_item({**item, **updates}))
 
     if request.method == "DELETE":
-        collection.delete_one({"_id": oid})
+        try:
+            collection.delete_one({"_id": oid})
+        except Exception:
+            return JsonResponse({"error": "Could not delete menu item."}, status=500)
         return JsonResponse({"message": "Menu item deleted"})
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -216,7 +228,10 @@ def menu_toggle(request, item_id):
         return JsonResponse({"error": "Item not found"}, status=404)
 
     updates = inventory_document({"is_available": not is_available(item)}, item)
-    collection.update_one({"_id": oid}, {"$set": updates})
+    try:
+        collection.update_one({"_id": oid}, {"$set": updates})
+    except Exception:
+        return JsonResponse({"error": "Could not update menu item."}, status=500)
     return JsonResponse(_format_menu_item({**item, **updates}))
 
 

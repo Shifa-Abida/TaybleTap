@@ -87,7 +87,10 @@ def tables_list(request):
         return JsonResponse({"error": "Database unavailable"}, status=503)
 
     if request.method == "GET":
-        tables = list(collection.find({"restaurant_id": user["user_id"]}).sort("table_number", 1))
+        try:
+            tables = list(collection.find({"restaurant_id": user["user_id"]}).sort("table_number", 1))
+        except Exception:
+            return JsonResponse({"error": "Unable to load tables."}, status=500)
         result = []
         for table in tables:
             result.append({
@@ -135,7 +138,10 @@ def tables_list(request):
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
-        result = collection.insert_one(table_doc)
+        try:
+            result = collection.insert_one(table_doc)
+        except Exception:
+            return JsonResponse({"error": "Could not create table."}, status=500)
         table_doc["id"] = str(result.inserted_id)
         del table_doc["_id"]
         del table_doc["restaurant_id"]
@@ -150,7 +156,10 @@ def tables_detail(request, table_id):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_tables_collection()
+    try:
+        collection = get_tables_collection()
+    except Exception:
+        return JsonResponse({"error": "Unable to load table details."}, status=500)
 
     try:
         oid = ObjectId(table_id)
@@ -198,21 +207,27 @@ def tables_detail(request, table_id):
         qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
         qr_code = generate_qr_code(user["user_id"], table_number)
 
-        collection.update_one(
-            {"_id": oid},
-            {"$set": {
-                "table_number": table_number,
-                "table_name": table_name,
-                "is_active": is_active,
-                "qr_url": qr_url,
-                "qr_code": qr_code,
-                "updated_at": datetime.utcnow().isoformat(),
-            }}
-        )
+        try:
+            collection.update_one(
+                {"_id": oid},
+                {"$set": {
+                    "table_number": table_number,
+                    "table_name": table_name,
+                    "is_active": is_active,
+                    "qr_url": qr_url,
+                    "qr_code": qr_code,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }}
+            )
+        except Exception:
+            return JsonResponse({"error": "Could not update table."}, status=500)
         return JsonResponse({"message": "Table updated"})
 
     elif request.method == "DELETE":
-        collection.delete_one({"_id": oid})
+        try:
+            collection.delete_one({"_id": oid})
+        except Exception:
+            return JsonResponse({"error": "Could not delete table."}, status=500)
         return JsonResponse({"message": "Table deleted"})
 
 
@@ -223,19 +238,28 @@ def tables_toggle(request, table_id):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_tables_collection()
+    try:
+        collection = get_tables_collection()
+    except Exception:
+        return JsonResponse({"error": "Unable to load table details."}, status=500)
 
     try:
         oid = ObjectId(table_id)
     except Exception:
         return JsonResponse({"error": "Invalid table ID"}, status=400)
 
-    table = collection.find_one({"_id": oid, "restaurant_id": user["user_id"]})
+    try:
+        table = collection.find_one({"_id": oid, "restaurant_id": user["user_id"]})
+    except Exception:
+        return JsonResponse({"error": "Unable to load table details."}, status=500)
     if not table:
         return JsonResponse({"error": "Table not found"}, status=404)
 
     current = table.get("is_active", True)
-    collection.update_one({"_id": oid}, {"$set": {"is_active": not current}})
+    try:
+        collection.update_one({"_id": oid}, {"$set": {"is_active": not current}})
+    except Exception:
+        return JsonResponse({"error": "Could not update table status."}, status=500)
 
     return JsonResponse({"is_active": not current})
 
@@ -247,7 +271,10 @@ def tables_qr(request, table_id):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_tables_collection()
+    try:
+        collection = get_tables_collection()
+    except Exception:
+        return JsonResponse({"error": "Unable to load table details."}, status=500)
 
     try:
         oid = ObjectId(table_id)
@@ -279,8 +306,15 @@ def tables_generate_all(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    collection = get_tables_collection()
-    tables = list(collection.find({"restaurant_id": user["user_id"]}))
+    try:
+        collection = get_tables_collection()
+    except Exception:
+        return JsonResponse({"error": "Unable to regenerate QR codes."}, status=500)
+
+    try:
+        tables = list(collection.find({"restaurant_id": user["user_id"]}))
+    except Exception:
+        return JsonResponse({"error": "Unable to regenerate QR codes."}, status=500)
 
     regenerated = 0
     for table in tables:
@@ -288,14 +322,17 @@ def tables_generate_all(request):
         qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
         qr_code = generate_qr_code(user["user_id"], table_number)
 
-        collection.update_one(
-            {"_id": table["_id"]},
-            {"$set": {
-                "qr_url": qr_url,
-                "qr_code": qr_code,
-                "updated_at": datetime.utcnow().isoformat(),
-            }}
-        )
+        try:
+            collection.update_one(
+                {"_id": table["_id"]},
+                {"$set": {
+                    "qr_url": qr_url,
+                    "qr_code": qr_code,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }}
+            )
+        except Exception:
+            return JsonResponse({"error": "Unable to regenerate QR codes."}, status=500)
         regenerated += 1
 
     return JsonResponse({"message": f"Regenerated {regenerated} QR codes"})

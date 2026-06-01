@@ -172,8 +172,8 @@ def public_menu(request):
             "restaurant_id": restaurant_id,
         })
 
-    except Exception as e:
-        return JsonResponse({"error": f"Failed to load menu: {str(e)}"}, status=500)
+    except Exception:
+        return JsonResponse({"error": "Failed to load menu. Please try again later."}, status=500)
 
 
 # ─── RESTAURANT INFO ──────────────────────────────────────────────────────────
@@ -348,7 +348,10 @@ def verify_customer_otp(request):
 
     expires_at = otp_doc.get("expires_at")
     if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at)
+        try:
+            expires_at = datetime.fromisoformat(expires_at)
+        except ValueError:
+            expires_at = None
     if expires_at and expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at and expires_at < datetime.now(timezone.utc):
@@ -519,7 +522,10 @@ def place_order(request):
         result = orders.insert_one(order_doc)
     except Exception:
         rollback_reserved_stock(menu_items, reserved_stock)
-        raise
+        return JsonResponse(
+            {"error": "Could not place order due to a server error."},
+            status=500,
+        )
 
     order_doc["_id"] = result.inserted_id
 
@@ -552,19 +558,25 @@ def order_status(request, order_id):
     try:
         orders = get_collection("orders")
         oid = ObjectId(order_id)
+    except Exception:
+        return JsonResponse({"error": "Invalid order ID"}, status=400)
+
+    try:
         order = orders.find_one({"_id": oid, "user_id": restaurant_id})
+    except Exception:
+        return JsonResponse({"error": "Failed to load order"}, status=500)
 
-        if not order:
-            return JsonResponse({"error": "Order not found"}, status=404)
+    if not order:
+        return JsonResponse({"error": "Order not found"}, status=404)
 
-        created_at = order.get("created_at", "")
-        updated_at = order.get("updated_at", "")
-        if isinstance(created_at, datetime):
-            created_at = created_at.isoformat()
-        if isinstance(updated_at, datetime):
-            updated_at = updated_at.isoformat()
+    created_at = order.get("created_at", "")
+    updated_at = order.get("updated_at", "")
+    if isinstance(created_at, datetime):
+        created_at = created_at.isoformat()
+    if isinstance(updated_at, datetime):
+        updated_at = updated_at.isoformat()
 
-        return JsonResponse({
+    return JsonResponse({
             "id": str(order["_id"]),
             "order_id": order.get("order_id", ""),
             "table": order.get("table", 0),
@@ -574,9 +586,6 @@ def order_status(request, order_id):
             "created_at": created_at,
             "updated_at": updated_at,
         })
-
-    except Exception:
-        return JsonResponse({"error": "Order not found"}, status=404)
 
 
 # ─── HELPER ───────────────────────────────────────────────────────────────────

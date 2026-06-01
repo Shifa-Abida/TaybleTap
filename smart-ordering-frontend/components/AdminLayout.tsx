@@ -2,6 +2,7 @@
 import { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import navItems from "@/components/adminNav";
 
 const PRIMARY = "#FF6B35";
 const MUTED = "#9CA3AF";
@@ -16,15 +17,7 @@ export default function AdminLayout({ children, activeCount = 0 }: AdminLayoutPr
   const router = useRouter();
   const pathname = usePathname();
 
-  const navItems = [
-    { icon: "⊞", label: "Dashboard", href: "/dashboard" },
-    { icon: "🧾", label: "Live Orders", href: "/orders" },
-    { icon: "🍽️", label: "Menu", href: "/menu" },
-    { icon: "📦", label: "Inventory", href: "/admin/inventory" },
-    { icon: "📊", label: "Analytics", href: "/analytics" },
-    { icon: "⬛", label: "QR Codes", href: "/qr" },
-    { icon: "⚙️", label: "Settings", href: "/settings" },
-  ];
+  // navItems imported from shared config (components/adminNav.tsx)
 
   return (
     <div style={{

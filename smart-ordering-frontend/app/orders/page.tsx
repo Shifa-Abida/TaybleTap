@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#E8602E";
 const GREEN = "#1A9E6B";
@@ -195,133 +196,56 @@ function OrderCard({ order, onAction, expanded, onToggle }: {
       boxShadow: expanded ? `0 4px 20px ${c.color}12` : "none",
       transition: "border-color 0.2s, box-shadow 0.2s",
     }}>
-      {/* Card Header */}
       <div
         onClick={onToggle}
         style={{
           display: "flex", alignItems: "center", gap: 14,
           padding: "16px 20px", cursor: "pointer",
           background: expanded ? c.bg.replace("0.1", "0.04") : "white",
-          transition: "background 0.15s",
         }}
       >
-        {/* Table Badge */}
-        <div style={{
-          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: c.bg, border: `1px solid ${c.color}30`,
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: c.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>TBL</span>
-          <span style={{ fontSize: 18, fontWeight: 800, color: c.color, lineHeight: 1 }}>{order.table}</span>
-        </div>
-
-        {/* Order Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 800, fontSize: 14, color: TEXT_PRIMARY }}>{order.orderId}</span>
-            <StatusPill status={order.status} />
-          </div>
-          <p style={{ margin: "3px 0 0", fontSize: 12, color: TEXT_MUTED }}>
-            {order.items.map(i => `${i.name} ×${i.qty}`).join(" · ")}
-          </p>
-        </div>
-
-        {/* Right: amount + time + chevron */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-          <span style={{ fontWeight: 800, fontSize: 16, color: TEXT_PRIMARY }}>₹{amt}</span>
-          <span style={{ fontSize: 11, color: TEXT_MUTED }}>{time}</span>
-        </div>
-        <span style={{
-          fontSize: 16, color: TEXT_MUTED, marginLeft: 4,
-          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          transition: "transform 0.2s",
-        }}>⌄</span>
-      </div>
-
-      {/* Expanded Detail */}
-      {expanded && (
-        <div style={{ padding: "0 20px 18px", borderTop: `1px solid ${BORDER}` }}>
-          {/* Items table */}
-          <div style={{ marginTop: 14, marginBottom: 14 }}>
-            <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: "0.09em" }}>Order Items</p>
-            {order.items.map((item, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "8px 0",
-                borderBottom: i < order.items.length - 1 ? `1px solid ${BORDER}` : "none",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{
-                    width: 24, height: 24, borderRadius: 6, background: SOFT_BG,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800, color: PRIMARY,
-                  }}>×{item.qty}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>{item.name}</span>
-                </div>
-                <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: TEXT_MUTED }}>₹{item.price} each</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_PRIMARY }}>₹{item.price * item.qty}</span>
-                </div>
-              </div>
-            ))}
-
-            {/* Total row */}
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              marginTop: 10, paddingTop: 10, borderTop: `2px solid ${BORDER}`,
-            }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_PRIMARY }}>Total</span>
-              <span style={{ fontSize: 18, fontWeight: 800, color: PRIMARY }}>₹{amt}</span>
-            </div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
+          <div style={{ width: 56, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>{order.orderId}</div>
+            <div style={{ fontSize: 12, color: TEXT_MUTED }}>{time}</div>
           </div>
 
-          {/* Meta row */}
-          <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "center", minWidth: 0 }}>
             {[
-              { label: "Order ID", value: order.orderId },
-              { label: "Table",    value: `Table ${order.table}` },
-              { label: "Placed",   value: time },
-              { label: "Items",    value: `${order.items.reduce((s, i) => s + i.qty, 0)} items` },
+              { label: "Items", value: `${order.items.reduce((s, i) => s + i.qty, 0)} items` },
+              { label: "Table", value: `Table ${order.table}` },
+              { label: "Total", value: `₹${amt}` },
             ].map(({ label, value }) => (
-              <div key={label}>
+              <div key={label} style={{ minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</p>
                 <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>{value}</p>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Status progress bar */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", gap: 0, position: "relative" }}>
-              {STATUS_FLOW.map((s, i) => {
-                const currentIdx = STATUS_FLOW.indexOf(order.status);
-                const done = i <= currentIdx && order.status !== "Cancelled";
-                const isCurrent = i === currentIdx && order.status !== "Cancelled";
-                return (
-                  <div key={s} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                    <div style={{ width: "100%", display: "flex", alignItems: "center" }}>
-                      {i > 0 && <div style={{ flex: 1, height: 2, background: done ? (isCurrent ? c.color : GREEN) : BORDER, transition: "background 0.3s" }} />}
-                      <div style={{
-                        width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                        background: done ? (isCurrent ? c.color : GREEN) : BORDER,
-                        border: `2px solid ${done ? (isCurrent ? c.color : GREEN) : BORDER}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "background 0.3s",
-                      }}>
-                        {done && !isCurrent && <span style={{ fontSize: 10, color: "white", fontWeight: 800 }}>✓</span>}
-                        {isCurrent && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "white" }} />}
-                      </div>
-                      {i < STATUS_FLOW.length - 1 && <div style={{ flex: 1, height: 2, background: i < currentIdx && order.status !== "Cancelled" ? GREEN : BORDER, transition: "background 0.3s" }} />}
-                    </div>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: done ? (isCurrent ? c.color : GREEN) : TEXT_MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s}</span>
-                  </div>
-                );
-              })}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <StatusPill status={order.status} />
+        </div>
+      </div>
+
+      {expanded && (
+        <div style={{ padding: "14px 20px", borderTop: `1px solid ${BORDER}`, background: "#FFFDF8" }}>
+          <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
+            {order.items.map((it, idx) => (
+              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 13, color: TEXT_PRIMARY }}>{it.name} ×{it.qty}</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>₹{it.price * it.qty}</div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, borderTop: `1px solid ${BORDER}`, paddingTop: 8 }}>
+              <div style={{ fontSize: 13, color: TEXT_MUTED }}>Total</div>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>₹{amt}</div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <ActionButtons order={order} onAction={onAction} />
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <ActionButtons order={order} onAction={onAction} />
         </div>
       )}
     </div>
@@ -418,88 +342,7 @@ export default function LiveOrders() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#FFFDF8", fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
-
-      {/* ── Sidebar ── */}
-      <aside style={{
-        width: 220, background: "white",
-        borderRight: "1px solid #F0EDE8",
-        display: "flex", flexDirection: "column",
-        padding: "24px 0", flexShrink: 0,
-      }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 20px 28px" }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: PRIMARY, display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <span style={{ fontSize: 18 }}>🍽️</span>
-          </div>
-          <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1A1A1A", fontFamily: "'Playfair Display', serif" }}>MenuQR</p>
-            <p style={{ margin: 0, fontSize: 10, color: TEXT_MUTED, fontWeight: 500 }}>Admin Panel</p>
-          </div>
-        </div>
-
-        {/* Nav Items */}
-        <nav style={{ flex: 1 }}>
-          {[
-            { icon: "⊞", label: "Dashboard",   href: "/dashboard" },
-            { icon: "🧾", label: "Live Orders", href: "/orders" },
-            { icon: "🍽️", label: "Menu",        href: "/menu" },
-            { icon: "📊", label: "Analytics",  href: "/analytics" },
-            { icon: "⬛", label: "QR Codes",    href: "/qr" },
-            { icon: "⚙️", label: "Settings",    href: "/settings" },
-          ].map(item => {
-            const isActive = pathname === item.href;
-            return (
-              <button
-                key={item.label}
-                onClick={() => router.push(item.href)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 10,
-                  padding: "11px 20px", border: "none", cursor: "pointer",
-                  background: isActive ? "rgba(232,96,46,0.08)" : "transparent",
-                  borderLeft: isActive ? `3px solid ${PRIMARY}` : "3px solid transparent",
-                  color: isActive ? PRIMARY : "#6B7280",
-                  fontWeight: isActive ? 600 : 400, fontSize: 13.5,
-                  transition: "all 0.15s", textAlign: "left",
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
-                {item.label}
-                {item.label === "Live Orders" && (
-                  <span style={{
-                    marginLeft: "auto", fontSize: 10, fontWeight: 700,
-                    background: PRIMARY, color: "white",
-                    borderRadius: 10, padding: "1px 6px",
-                  }}>{pending}</span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Restaurant Info */}
-        <div style={{
-          margin: "0 14px", padding: "12px 14px",
-          background: "rgba(232,96,46,0.06)",
-          borderRadius: 12, border: "1px solid rgba(232,96,46,0.12)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 22 }}>🏪</span>
-            <div>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: "#1A1A1A" }}>
-                {user.restaurant_name || "My Restaurant"}
-              </p>
-              <p style={{ margin: 0, fontSize: 11, color: TEXT_MUTED }}>{user.city || "Bengaluru"}</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main Content ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+    <AdminLayout activeCount={pending}>
 
       <style>{`
         @keyframes pulse {
@@ -754,7 +597,6 @@ export default function LiveOrders() {
           </>
         )}
       </main>
-      </div>{/* close main content wrapper */}
-    </div>
+    </AdminLayout>
   );
 }

@@ -62,7 +62,10 @@ def order_list(request):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_collection("orders")
+    try:
+        collection = get_collection("orders")
+    except Exception:
+        return JsonResponse({"error": "Unable to load orders."}, status=500)
 
     if request.method == "GET":
         status_filter = request.GET.get("status", "")
@@ -70,7 +73,10 @@ def order_list(request):
         if status_filter and status_filter in VALID_STATUSES:
             query["status"] = status_filter
 
-        orders = list(collection.find(query).sort("created_at", -1))
+        try:
+            orders = list(collection.find(query).sort("created_at", -1))
+        except Exception:
+            return JsonResponse({"error": "Unable to load orders."}, status=500)
         return JsonResponse({
             "orders": [_format_order(o) for o in orders]
         })
@@ -102,7 +108,10 @@ def order_list(request):
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         }
-        result = collection.insert_one(order)
+        try:
+            result = collection.insert_one(order)
+        except Exception:
+            return JsonResponse({"error": "Could not create order."}, status=500)
         order["_id"] = result.inserted_id
         return JsonResponse(_format_order(order), status=201)
 
@@ -114,14 +123,21 @@ def order_detail(request, order_id):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_collection("orders")
+    try:
+        collection = get_collection("orders")
+    except Exception:
+        return JsonResponse({"error": "Unable to load order."}, status=500)
 
     try:
         oid = ObjectId(order_id)
     except Exception:
         return JsonResponse({"error": "Invalid order ID"}, status=400)
 
-    order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
+    try:
+        order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
+    except Exception:
+        return JsonResponse({"error": "Unable to load order."}, status=500)
+
     if not order:
         return JsonResponse({"error": "Order not found"}, status=404)
 
@@ -136,10 +152,13 @@ def order_detail(request, order_id):
 
         new_status = data.get("status")
         if new_status and new_status in VALID_STATUSES:
-            collection.update_one(
-                {"_id": oid},
-                {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
-            )
+            try:
+                collection.update_one(
+                    {"_id": oid},
+                    {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
+                )
+            except Exception:
+                return JsonResponse({"error": "Could not update order."}, status=500)
             order["status"] = new_status
 
         return JsonResponse(_format_order(order))
@@ -153,14 +172,21 @@ def order_status(request, order_id):
     if not user:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    collection = get_collection("orders")
+    try:
+        collection = get_collection("orders")
+    except Exception:
+        return JsonResponse({"error": "Unable to load order."}, status=500)
 
     try:
         oid = ObjectId(order_id)
     except Exception:
         return JsonResponse({"error": "Invalid order ID"}, status=400)
 
-    order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
+    try:
+        order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
+    except Exception:
+        return JsonResponse({"error": "Unable to load order."}, status=500)
+
     if not order:
         return JsonResponse({"error": "Order not found"}, status=404)
 
@@ -174,10 +200,16 @@ def order_status(request, order_id):
         if not new_status or new_status not in VALID_STATUSES:
             return JsonResponse({"error": "Valid status required"}, status=400)
 
-        collection.update_one(
-            {"_id": oid},
-            {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
-        )
+        try:
+            collection.update_one(
+                {"_id": oid},
+                {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
+            )
+        except Exception:
+            return JsonResponse({"error": "Could not update order."}, status=500)
 
-        updated = collection.find_one({"_id": oid})
+        try:
+            updated = collection.find_one({"_id": oid})
+        except Exception:
+            return JsonResponse({"error": "Unable to load order."}, status=500)
         return JsonResponse(_format_order(updated))

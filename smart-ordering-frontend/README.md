@@ -1,24 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Ordering Frontend
 
-## Getting Started
+This frontend is a Next.js application for the TaybleTap ordering system.
+It connects to the Django backend in `smart-ordering-backend/` and provides the user interface for customers and admins.
 
-First, run the development server:
+## Project structure
+
+- `app/` contains Next.js route pages and page-specific UI.
+- `components/` reusable React components used across the app.
+- `context/` application context providers, including authentication state.
+- `lib/` helper utilities and backend API wrapper functions.
+- `public/` static assets.
+
+## Setup
+
+Install dependencies and start the development server:
 
 ```bash
+cd smart-ordering-frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - start the frontend in development mode.
+- `npm run build` - build the production application.
+- `npm run start` - run the built production application.
+- `npm run lint` - run ESLint to verify code style and quality.
+
+## Backend integration
+
+The frontend communicates with the backend API through utility functions in `lib/api.ts`.
+Ensure the Django backend is running before using frontend features that fetch or submit data.
+
+## Notes
+
+- This README focuses on frontend setup and structure.
+- See the root `README.md` for the overall repository overview and backend setup instructions.
 
 ## Learn More
 

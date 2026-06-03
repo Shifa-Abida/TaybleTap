@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminLayout from "@/components/AdminLayout";
@@ -23,6 +23,11 @@ interface InventoryItem {
   track_stock: boolean;
   is_available: boolean;
   available: boolean;
+  imagePreview?: string;
+  emoji?: string;
+  desc?: string;
+  updated_at?: string;
+  created_at?: string;
   stock_status: "Not Tracked" | "Out Of Stock" | "Low Stock" | "In Stock";
 }
 
@@ -33,12 +38,131 @@ interface InventoryForm {
   is_available: boolean;
 }
 
+const DEMO_INVENTORY: InventoryItem[] = [
+  {
+    id: "1",
+    name: "Chicken Biryani",
+    category: "Biryani",
+    stock_quantity: 18,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: true,
+    available: true,
+    imagePreview: "https://images.unsplash.com/photo-1604908177523-4b38db8292af?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 15 * 60000).toISOString(),
+    stock_status: "In Stock",
+  },
+  {
+    id: "2",
+    name: "Palak Paneer",
+    category: "Curries",
+    stock_quantity: 3,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: true,
+    available: true,
+    imagePreview: "https://images.unsplash.com/photo-1589308078058-8d3c1a9f5924?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+    stock_status: "Low Stock",
+  },
+  {
+    id: "3",
+    name: "Butter Chicken",
+    category: "Curries",
+    stock_quantity: 0,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: false,
+    available: false,
+    imagePreview: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 26 * 3600000).toISOString(),
+    stock_status: "Out Of Stock",
+  },
+  {
+    id: "4",
+    name: "Garlic Naan",
+    category: "Breads",
+    stock_quantity: 2,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: true,
+    available: true,
+    imagePreview: "https://images.unsplash.com/photo-1589927986089-35812389fc1b?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 40 * 60000).toISOString(),
+    stock_status: "Low Stock",
+  },
+  {
+    id: "5",
+    name: "Mango Lassi",
+    category: "Drinks",
+    stock_quantity: 12,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: true,
+    available: true,
+    imagePreview: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 80 * 60000).toISOString(),
+    stock_status: "In Stock",
+  },
+  {
+    id: "6",
+    name: "Gulab Jamun",
+    category: "Desserts",
+    stock_quantity: 8,
+    low_stock_threshold: 5,
+    track_stock: true,
+    is_available: true,
+    available: true,
+    imagePreview: "https://images.unsplash.com/photo-1576792379663-5c228cf82552?auto=format&fit=crop&w=200&q=80",
+    updated_at: new Date(Date.now() - 30 * 60000).toISOString(),
+    stock_status: "In Stock",
+  },
+];
+
 const statusColors: Record<InventoryItem["stock_status"], { color: string; background: string }> = {
-  "Not Tracked": { color: MUTED, background: "#F3F4F6" },
-  "Out Of Stock": { color: RED, background: "rgba(229,62,62,0.1)" },
+  "Out Of Stock": { color: RED, background: "rgba(229,62,62,0.12)" },
   "Low Stock": { color: AMBER, background: "rgba(245,158,11,0.12)" },
-  "In Stock": { color: GREEN, background: "rgba(26,158,107,0.1)" },
+  "In Stock": { color: GREEN, background: "rgba(26,158,107,0.12)" },
 };
+
+const FOOD_PLACEHOLDER_IMAGE =
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='22' fill='%23F3F4F6'/%3E%3Cpath d='M34 46c0 8.284 5.716 15 12.785 15H73.21C80.284 61 86 54.284 86 46V36H34v10z' fill='%23E5E7EB'/%3E%3Cpath d='M34 36H86v9.5c0 8-5.51 14.5-12.29 14.5H46.29C39.51 60 34 53.5 34 45.5V36z' fill='%23FFFFFF'/%3E%3Cpath d='M45 75c0 5.523 4.477 10 10 10s10-4.477 10-10V58H45v17z' fill='%23D1D5DB'/%3E%3Cpath d='M38 88c0 4.418 3.582 8 8 8h28c4.418 0 8-3.582 8-8v-4H38v4z' fill='%23E5E7EB'/%3E%3C/svg%3E";
+
+const DEMO_IMAGE_BY_NAME: Record<string, string> = {
+  "Chicken Biryani": "https://images.unsplash.com/photo-1604908177523-4b38db8292af?auto=format&fit=crop&w=200&q=80",
+  "Palak Paneer": "https://images.unsplash.com/photo-1589308078058-8d3c1a9f5924?auto=format&fit=crop&w=200&q=80",
+  "Butter Chicken": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=80",
+  "Garlic Naan": "https://images.unsplash.com/photo-1589927986089-35812389fc1b?auto=format&fit=crop&w=200&q=80",
+  "Mango Lassi": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=200&q=80",
+  "Gulab Jamun": "https://images.unsplash.com/photo-1576792379663-5c228cf82552?auto=format&fit=crop&w=200&q=80",
+};
+
+function getItemImage(item: InventoryItem) {
+  return item.imagePreview || DEMO_IMAGE_BY_NAME[item.name] || FOOD_PLACEHOLDER_IMAGE;
+}
+
+function getStockStatus(item: InventoryItem): InventoryItem["stock_status"] {
+  if (item.stock_quantity === 0) return "Out Of Stock";
+  if (item.stock_quantity <= item.low_stock_threshold) return "Low Stock";
+  return "In Stock";
+}
+
+function getAvailability(item: InventoryItem) {
+  return item.stock_quantity > 0;
+}
+
+function getRelativeTimeLabel(timestamp?: string) {
+  if (!timestamp) return "Just now";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "Just now";
+  const diffMinutes = Math.round((Date.now() - date.getTime()) / 60000);
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  if (diffHours < 48) return "Yesterday";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
@@ -59,16 +183,31 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
+const STOCK_PAGE_SIZE = 10;
+const STATUS_OPTIONS = ["All", "In Stock", "Low Stock", "Out Of Stock"];
+const AVAILABILITY_OPTIONS = ["All", "Available", "Unavailable"];
+
 export default function InventoryManagement() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [lowStockCount, setLowStockCount] = useState(0);
+  const [items, setItems] = useState<InventoryItem[]>(DEMO_INVENTORY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<InventoryForm | null>(null);
+  const [stockModalItem, setStockModalItem] = useState<InventoryItem | null>(null);
+  const [stockModalQuantity, setStockModalQuantity] = useState(0);
   const [error, setError] = useState("");
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
+  const [filters, setFilters] = useState({
+    search: "",
+    category: "All",
+    status: "All",
+    availability: "All",
+  });
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -78,24 +217,21 @@ export default function InventoryManagement() {
     try {
       setError("");
       const headers = getAuthHeaders();
-      const [menuRes, lowStockRes] = await Promise.all([
-        fetch(API_ENDPOINTS.MENU, { headers }),
-        fetch(API_ENDPOINTS.MENU_LOW_STOCK, { headers }),
-      ]);
-      if (menuRes.status === 401 || lowStockRes.status === 401) {
+      const menuRes = await fetch(API_ENDPOINTS.MENU, { headers });
+      if (menuRes.status === 401) {
         await logout();
         throw new Error("Your session expired. Please log in again.");
       }
       if (!menuRes.ok) throw new Error("Could not load inventory.");
 
       const menuData = await menuRes.json();
-      const lowStockData = lowStockRes.ok ? await lowStockRes.json() : { items: [] };
-      setItems(Array.isArray(menuData.items) ? menuData.items : []);
-      setLowStockCount(Array.isArray(lowStockData.items) ? lowStockData.items.length : 0);
+      const fetchedItems = Array.isArray(menuData.items) ? menuData.items : [];
+      if (fetchedItems.length > 0) setItems(fetchedItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load inventory.");
     } finally {
       setLoading(false);
+      setSavingItemId(null);
     }
   }, [logout]);
 
@@ -107,7 +243,113 @@ export default function InventoryManagement() {
     return () => window.clearTimeout(timer);
   }, [fetchInventory, user]);
 
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(items.map((item) => item.category)))].sort(),
+    [items]
+  );
+
+  const filteredItems = useMemo(
+    () => items.filter((item) => {
+      const search = filters.search.trim().toLowerCase();
+      const matchSearch =
+        !search ||
+        item.name.toLowerCase().includes(search) ||
+        item.category.toLowerCase().includes(search);
+      const matchCategory = filters.category === "All" || item.category === filters.category;
+      const stockStatus = getStockStatus(item);
+      const matchStatus = filters.status === "All" || stockStatus === filters.status;
+      const availability = getAvailability(item);
+      const matchAvailability =
+        filters.availability === "All" ||
+        (filters.availability === "Available" && availability) ||
+        (filters.availability === "Unavailable" && !availability);
+      return matchSearch && matchCategory && matchStatus && matchAvailability;
+    }),
+    [filters, items]
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredItems.length / STOCK_PAGE_SIZE));
+  const pagedItems = filteredItems.slice((page - 1) * STOCK_PAGE_SIZE, page * STOCK_PAGE_SIZE);
+
+  const totalItems = items.length;
+  const inStockCount = items.filter((item) => getStockStatus(item) === "In Stock").length;
+  const lowStockCount = items.filter((item) => getStockStatus(item) === "Low Stock").length;
+  const outOfStockCount = items.filter((item) => getStockStatus(item) === "Out Of Stock").length;
+  const inventoryAlerts = items.filter((item) => getStockStatus(item) !== "In Stock");
+
+  const formatCsvValue = (value: any) => {
+    const text = value === null || value === undefined ? "" : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
+  const exportCsv = () => {
+    const headers = ["Name", "Category", "Current Stock", "Threshold", "Status", "Availability"];
+    const rows = filteredItems.map((item) => [
+      item.name,
+      item.category,
+      item.stock_quantity,
+      item.low_stock_threshold,
+      getStockStatus(item),
+      getAvailability(item) ? "Available" : "Unavailable",
+    ]);
+    const csvContent = [headers, ...rows].map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "inventory-export.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const updateStock = async (item: InventoryItem, delta: number) => {
+    const nextQuantity = Math.max(0, item.stock_quantity + delta);
+    if (nextQuantity === item.stock_quantity) return;
+    setSavingItemId(item.id);
+    setError("");
+    try {
+      const res = await fetch(API_ENDPOINTS.MENU_ITEM(item.id), {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ stock_quantity: nextQuantity }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not update stock.");
+      await fetchInventory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update stock.");
+    } finally {
+      setSavingItemId(null);
+    }
+  };
+
+  const toggleAvailability = async (item: InventoryItem) => {
+    setSavingItemId(item.id);
+    setError("");
+    try {
+      const res = await fetch(API_ENDPOINTS.MENU_TOGGLE(item.id), {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not toggle availability.");
+      await fetchInventory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not toggle availability.");
+    } finally {
+      setSavingItemId(null);
+    }
+  };
+
   const openEdit = (item: InventoryItem) => {
+    setHistoryItem(null);
+    setActionMenuId(null);
     setEditing(item);
     setForm({
       stock_quantity: item.stock_quantity,
@@ -117,27 +359,57 @@ export default function InventoryManagement() {
     });
   };
 
-  const saveInventory = async () => {
-    if (!editing || !form) return;
+  const openStockModal = (item: InventoryItem) => {
+    setActionMenuId(null);
+    setHistoryItem(null);
+    setStockModalItem(item);
+    setStockModalQuantity(item.stock_quantity);
+  };
+
+  const saveStockUpdate = async () => {
+    if (!stockModalItem) return;
     setSaving(true);
+    setSavingItemId(stockModalItem.id);
     setError("");
     try {
-      const res = await fetch(API_ENDPOINTS.MENU_ITEM(editing.id), {
+      const res = await fetch(API_ENDPOINTS.MENU_ITEM(stockModalItem.id), {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify(form),
+        body: JSON.stringify({ stock_quantity: Math.max(0, stockModalQuantity) }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not update inventory.");
-
-      setEditing(null);
-      setForm(null);
+      if (!res.ok) throw new Error(data.error || "Could not update stock.");
       await fetchInventory();
+      setStockModalItem(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update inventory.");
+      setError(err instanceof Error ? err.message : "Could not update stock.");
     } finally {
       setSaving(false);
+      setSavingItemId(null);
     }
+  };
+
+  const openHistory = (item: InventoryItem) => {
+    setActionMenuId(null);
+    setHistoryItem(item);
+  };
+
+  const formatUpdatedAt = (item: InventoryItem) => {
+    const timestamp = (item as any).updated_at || (item as any).created_at;
+    return getRelativeTimeLabel(timestamp);
+  };
+
+  const getProgressColor = (item: InventoryItem) => {
+    const status = getStockStatus(item);
+    if (status === "Out Of Stock") return RED;
+    if (status === "Low Stock") return AMBER;
+    return GREEN;
+  };
+
+  const getProgressValue = (item: InventoryItem) => {
+    if (item.stock_quantity === 0) return 0;
+    if (item.low_stock_threshold <= 0) return 100;
+    return Math.min(100, Math.round((item.stock_quantity / item.low_stock_threshold) * 100));
   };
 
   if (isLoading || loading) {
@@ -148,107 +420,389 @@ export default function InventoryManagement() {
   return (
     <AdminLayout>
       <div style={{ minHeight: "100vh", background: "#FFFDF8", fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
-        <header style={{ padding: "18px 28px", background: "white", borderBottom: `1px solid ${BORDER}` }}>
-          <h1 style={{ margin: 0, fontSize: 21, color: "#1A1A1A" }}>Inventory Management</h1>
-          <p style={{ margin: "4px 0 0", color: MUTED, fontSize: 13 }}>
-            Track portions, low-stock thresholds, and ordering availability.
-          </p>
+        <header style={{ padding: "18px 28px", background: "white", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22, color: "#1A1A1A" }}>Inventory Management</h1>
+            <p style={{ margin: "6px 0 0", color: MUTED, fontSize: 13, maxWidth: 680 }}>
+              Keep all menu inventory in sync with your existing menu items, track low stock alerts, and update availability without changing your current menu workflow.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={exportCsv}
+            style={{ padding: "12px 18px", borderRadius: 14, border: `1px solid ${BORDER}`, background: "white", color: PRIMARY, fontWeight: 700, cursor: "pointer" }}>
+            Export CSV
+          </button>
         </header>
 
         <main style={{ padding: 28 }}>
-          <div style={{
-            marginBottom: 18, padding: "14px 18px", borderRadius: 14,
-            border: `1px solid ${lowStockCount ? "rgba(245,158,11,0.35)" : BORDER}`,
-            background: lowStockCount ? "rgba(245,158,11,0.08)" : "white",
-            color: lowStockCount ? AMBER : GREEN, fontWeight: 700, fontSize: 13,
-          }}>
-            {lowStockCount ? `${lowStockCount} tracked item${lowStockCount === 1 ? "" : "s"} need attention.` : "No tracked items are low on stock."}
-          </div>
+          <section style={{ display: "grid", gap: 18, marginBottom: 22 }}>
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              {[
+                { label: "Total Items", value: totalItems, color: "#1A1A1A", icon: "📦" },
+                { label: "In Stock", value: inStockCount, color: GREEN, icon: "✅" },
+                { label: "Low Stock", value: lowStockCount, color: AMBER, icon: "⚠️" },
+                { label: "Out of Stock", value: outOfStockCount, color: RED, icon: "⛔" },
+              ].map((card) => (
+                <div key={card.label} style={{ padding: 20, borderRadius: 18, background: "white", border: `1px solid ${BORDER}`, boxShadow: "0 10px 25px rgba(15,23,42,0.04)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 20 }}>{card.icon}</span>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: "0.08em", textTransform: "uppercase" }}>{card.label}</p>
+                  </div>
+                  <p style={{ margin: "14px 0 0", fontSize: 28, fontWeight: 700, color: card.color }}>{card.value}</p>
+                </div>
+              ))}
+            </div>
 
-          {error && <p style={{ color: RED, fontSize: 13 }}>{error}</p>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ minWidth: 280, flex: 1, minHeight: 104, padding: 20, borderRadius: 18, background: "white", border: `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A1A" }}>⚠ Inventory Alerts</span>
+                    <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, color: inventoryAlerts.length ? RED : GREEN, background: inventoryAlerts.length ? "rgba(229,62,62,0.12)" : "rgba(16,185,129,0.12)" }}>
+                      {inventoryAlerts.length}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  {inventoryAlerts.length > 0 ? (
+                    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                      {inventoryAlerts.slice(0, 5).map((item) => (
+                        <li key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#1A1A1A", fontSize: 13 }}>
+                            <span>•</span>
+                            {item.name}
+                          </span>
+                          <span style={{ color: "#92400E", fontSize: 13, fontWeight: 700 }}>
+                            {getStockStatus(item) === "Out Of Stock"
+                              ? "Out Of Stock"
+                              : `Low Stock (${item.stock_quantity} remaining)`}
+                          </span>
+                        </li>
+                      ))}
+                      {inventoryAlerts.length > 5 && (
+                        <li style={{ padding: "8px 0", color: MUTED, fontSize: 13 }}>
+                          + {inventoryAlerts.length - 5} more items
+                        </li>
+                      )}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>No current inventory alerts.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
 
-          <div style={{ overflowX: "auto", background: "white", border: `1px solid ${BORDER}`, borderRadius: 16 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 820 }}>
+          <section style={{ marginBottom: 24, display: "grid", gap: 14, background: "white", padding: 20, borderRadius: 18, border: `1px solid ${BORDER}` }}>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr auto", alignItems: "center" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A1A" }}>Filter & search inventory</p>
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: MUTED }}>Find the right item quickly by name, category, status, or availability.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFilters({ search: "", category: "All", status: "All", availability: "All" })}
+                style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: "white", color: "#4B5563", fontWeight: 700, cursor: "pointer" }}>
+                Reset Filters
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1.7fr 1fr 1fr 1fr" }}>
+              <input
+                type="text"
+                placeholder="Search menu item"
+                value={filters.search}
+                onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+                style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14 }}
+              />
+              <select
+                value={filters.category}
+                onChange={(event) => setFilters((prev) => ({ ...prev, category: event.target.value }))}
+                style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "white" }}>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <select
+                value={filters.status}
+                onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+                style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "white" }}>
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              <select
+                value={filters.availability}
+                onChange={(event) => setFilters((prev) => ({ ...prev, availability: event.target.value }))}
+                style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "white" }}>
+                {AVAILABILITY_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          <section style={{ overflowX: "auto", background: "white", border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: "0 15px 36px rgba(15,23,42,0.05)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
               <thead>
-                <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
-                  {["Menu Item Name", "Category", "Current Stock", "Low Stock Threshold", "Stock Status", "Availability", "Action"].map((heading) => (
-                    <th key={heading} style={{ padding: "13px 14px", textAlign: "left", color: MUTED, fontSize: 11, textTransform: "uppercase" }}>
+                <tr style={{ borderBottom: `1px solid ${BORDER}`, background: "#F8FAFC" }}>
+                  {["Item", "Category", "Stock", "Status", "Availability", "Last Updated", "Actions"].map((heading) => (
+                    <th key={heading} style={{ padding: "16px 14px", textAlign: "left", color: MUTED, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       {heading}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => {
-                  const status = statusColors[item.stock_status];
+                {pagedItems.map((item) => {
+                  const status = statusColors[getStockStatus(item)];
+                  const isToggling = savingItemId === item.id;
                   return (
-                    <tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: 14, fontWeight: 700, color: "#1A1A1A" }}>{item.name}</td>
-                      <td style={{ padding: 14, color: "#6B7280", fontSize: 13 }}>{item.category}</td>
-                      <td style={{ padding: 14, fontWeight: 700 }}>{item.stock_quantity}</td>
-                      <td style={{ padding: 14 }}>{item.low_stock_threshold}</td>
-                      <td style={{ padding: 14 }}>
-                        <span style={{ padding: "4px 9px", borderRadius: 20, fontSize: 12, fontWeight: 700, ...status }}>
-                          {item.stock_status}
+<tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}`, borderLeft: `4px solid ${status.color}`, background: "#FFFFFF" }}>
+                      <td style={{ padding: 10, color: "#1F2937", fontSize: 13, fontWeight: 700 }}>{item.name}</td>
+
+                      <td style={{ padding: 10, color: "#4B5563", fontSize: 13 }}>{item.category}</td>
+
+                      <td style={{ padding: 10, fontWeight: 700, color: "#111827" }}>{item.stock_quantity} / {item.low_stock_threshold}</td>
+
+                      <td style={{ padding: 10 }}>
+                        <span style={{ padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6, color: status.color, background: status.background }}>
+                          {status.color === GREEN ? "🟢" : status.color === AMBER ? "🟡" : "🔴"} {getStockStatus(item)}
                         </span>
                       </td>
-                      <td style={{ padding: 14, color: item.is_available ? GREEN : RED, fontWeight: 700, fontSize: 12 }}>
-                        {item.is_available ? "Available" : "Unavailable"}
+
+                      <td style={{ padding: 10 }}>
+                        <span style={{ padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, color: getAvailability(item) ? GREEN : RED, background: getAvailability(item) ? "rgba(26,158,107,0.12)" : "rgba(229,62,62,0.12)" }}>
+                          {getAvailability(item) ? "Available" : "Unavailable"}
+                        </span>
                       </td>
-                      <td style={{ padding: 14 }}>
+
+                      <td style={{ padding: 10, color: "#6B7280", fontSize: 13 }}>{formatUpdatedAt(item)}</td>
+
+                      <td style={{ padding: 10, verticalAlign: "top", position: "relative" }}>
                         <button
-                          onClick={() => openEdit(item)}
-                          style={{ padding: "7px 14px", borderRadius: 9, border: `1px solid ${PRIMARY}35`, background: `${PRIMARY}10`, color: PRIMARY, cursor: "pointer", fontWeight: 700 }}
-                        >
-                          Edit
+                          type="button"
+                          onClick={() => setActionMenuId(actionMenuId === item.id ? null : item.id)}
+                          style={{ width: 44, height: 44, borderRadius: 12, border: `1px solid ${BORDER}`, background: "white", cursor: "pointer", color: "#374151" }}>
+                          ⋮
                         </button>
+                        {actionMenuId === item.id && (
+                          <div style={{ position: "absolute", top: 54, right: 0, width: 220, borderRadius: 16, border: `1px solid ${BORDER}`, background: "white", boxShadow: "0 20px 45px rgba(15,23,42,0.12)", zIndex: 30 }}>
+                            <button type="button" onClick={() => openStockModal(item)} style={{ width: "100%", textAlign: "left", padding: "14px 16px", border: "none", background: "transparent", cursor: "pointer", color: "#111827", fontWeight: 700 }}>
+                              Update Stock
+                            </button>
+                            <button type="button" onClick={() => openEdit(item)} style={{ width: "100%", textAlign: "left", padding: "14px 16px", border: "none", background: "transparent", cursor: "pointer", color: "#111827", fontWeight: 700 }}>
+                              Edit Threshold
+                            </button>
+                            <button type="button" onClick={() => openHistory(item)} style={{ width: "100%", textAlign: "left", padding: "14px 16px", border: "none", background: "transparent", cursor: "pointer", color: "#111827", fontWeight: 700 }}>
+                              View History
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            {items.length === 0 && <p style={{ padding: 24, textAlign: "center", color: MUTED }}>No menu items found.</p>}
-          </div>
+            {filteredItems.length === 0 && <p style={{ padding: 24, textAlign: "center", color: MUTED }}>No inventory items match the selected filters.</p>}
+          </section>
+
+          <section style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>
+              Showing {filteredItems.length === 0 ? 0 : (page - 1) * STOCK_PAGE_SIZE + 1}–{Math.min(page * STOCK_PAGE_SIZE, filteredItems.length)} of {filteredItems.length} items
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${BORDER}`, background: page === 1 ? "#F3F4F6" : "white", color: page === 1 ? "#9CA3AF" : "#111827", cursor: page === 1 ? "not-allowed" : "pointer" }}>
+                Previous
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => setPage(pageNumber)}
+                  style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${pageNumber === page ? PRIMARY : BORDER}`, background: pageNumber === page ? PRIMARY : "white", color: pageNumber === page ? "white" : "#111827", cursor: "pointer" }}>
+                  {pageNumber}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+                disabled={page === pageCount}
+                style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${BORDER}`, background: page === pageCount ? "#F3F4F6" : "white", color: page === pageCount ? "#9CA3AF" : "#111827", cursor: page === pageCount ? "not-allowed" : "pointer" }}>
+                Next
+              </button>
+            </div>
+          </section>
         </main>
 
         {editing && form && (
           <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", padding: 20 }}>
-            <div style={{ width: "100%", maxWidth: 460, background: "white", borderRadius: 18, padding: 22 }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>Edit {editing.name}</h2>
-              <p style={{ margin: "5px 0 18px", color: MUTED, fontSize: 12 }}>Update menu-item stock controls.</p>
+            <div style={{ width: "100%", maxWidth: 500, background: "white", borderRadius: 18, padding: 26 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 18 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>Edit {editing.name}</h2>
+                  <p style={{ margin: "8px 0 0", color: MUTED, fontSize: 13 }}>Adjust stock, threshold, and availability for this menu item.</p>
+                </div>
+                <button onClick={() => { setEditing(null); setForm(null); }} style={{ border: "none", background: "transparent", color: MUTED, fontSize: 22, lineHeight: 1, cursor: "pointer" }}>
+                  ×
+                </button>
+              </div>
 
               {[
                 ["Current Stock", "stock_quantity"],
                 ["Low Stock Threshold", "low_stock_threshold"],
               ].map(([label, key]) => (
-                <label key={key} style={{ display: "grid", gap: 6, marginBottom: 14, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                <label key={key} style={{ display: "grid", gap: 8, marginBottom: 16, color: MUTED, fontSize: 12, fontWeight: 700 }}>
                   {label}
                   <input
                     type="number"
                     min={0}
                     value={form[key as keyof InventoryForm] as number}
                     onChange={(event) => setForm({ ...form, [key]: Math.max(0, Number(event.target.value)) })}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14 }}
+                    style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14 }}
                   />
                 </label>
               ))}
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Track stock automatically</span>
-                <Toggle checked={form.track_stock} onChange={() => setForm({ ...form, track_stock: !form.track_stock })} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 18px" }}>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Available for ordering</span>
-                <Toggle checked={form.is_available} onChange={() => setForm({ ...form, is_available: !form.is_available })} />
+              <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>Track stock automatically</span>
+                  <Toggle checked={form.track_stock} onChange={() => setForm({ ...form, track_stock: !form.track_stock })} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>Available for ordering</span>
+                  <Toggle checked={form.is_available} onChange={() => setForm({ ...form, is_available: !form.is_available })} />
+                </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => { setEditing(null); setForm(null); }} style={{ flex: 1, padding: 11, borderRadius: 10, border: `1px solid ${BORDER}`, background: "white", cursor: "pointer" }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={() => { setEditing(null); setForm(null); }} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: `1px solid ${BORDER}`, background: "white", color: "#374151", cursor: "pointer", fontWeight: 700 }}>
                   Cancel
                 </button>
-                <button onClick={saveInventory} disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: PRIMARY, color: "white", cursor: "pointer", fontWeight: 700 }}>
+                <button onClick={saveInventory} disabled={saving} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: "none", background: PRIMARY, color: "white", cursor: "pointer", fontWeight: 700 }}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stockModalItem && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", padding: 20 }}>
+            <div style={{ width: "100%", maxWidth: 460, background: "white", borderRadius: 18, padding: 26 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 18 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>Update Stock</h2>
+                  <p style={{ margin: "8px 0 0", color: MUTED, fontSize: 13 }}>Adjust the current stock quantity for this item.</p>
+                </div>
+                <button onClick={() => setStockModalItem(null)} style={{ border: "none", background: "transparent", color: MUTED, fontSize: 22, lineHeight: 1, cursor: "pointer" }}>
+                  ×
+                </button>
+              </div>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 16, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                Item Name
+                <input type="text" value={stockModalItem.name} readOnly style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "#F8FAFC", color: "#111827" }} />
+              </label>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 16, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                Current Stock
+                <input type="number" value={stockModalItem.stock_quantity} readOnly style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "#F8FAFC", color: "#111827" }} />
+              </label>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 24, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                New Stock Quantity
+                <input
+                  type="number"
+                  min={0}
+                  value={stockModalQuantity}
+                  onChange={(event) => setStockModalQuantity(Math.max(0, Number(event.target.value)))}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14 }}
+                />
+              </label>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={() => setStockModalItem(null)} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: `1px solid ${BORDER}`, background: "white", color: "#374151", cursor: "pointer", fontWeight: 700 }}>
+                  Cancel
+                </button>
+                <button onClick={saveStockUpdate} disabled={saving} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: "none", background: PRIMARY, color: "white", cursor: "pointer", fontWeight: 700 }}>
                   {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stockModalItem && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", padding: 20 }}>
+            <div style={{ width: "100%", maxWidth: 460, background: "white", borderRadius: 18, padding: 26 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 18 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>Update Stock</h2>
+                  <p style={{ margin: "8px 0 0", color: MUTED, fontSize: 13 }}>Adjust the current stock quantity for this menu item.</p>
+                </div>
+                <button onClick={() => setStockModalItem(null)} style={{ border: "none", background: "transparent", color: MUTED, fontSize: 22, lineHeight: 1, cursor: "pointer" }}>
+                  ×
+                </button>
+              </div>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 16, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                Item Name
+                <input type="text" value={stockModalItem.name} readOnly style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "#F8FAFC", color: "#111827" }} />
+              </label>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 16, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                Current Stock
+                <input type="number" value={stockModalItem.stock_quantity} readOnly style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14, background: "#F8FAFC", color: "#111827" }} />
+              </label>
+
+              <label style={{ display: "grid", gap: 8, marginBottom: 24, color: MUTED, fontSize: 12, fontWeight: 700 }}>
+                New Stock Quantity
+                <input
+                  type="number"
+                  min={0}
+                  value={stockModalQuantity}
+                  onChange={(event) => setStockModalQuantity(Math.max(0, Number(event.target.value)))}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, fontSize: 14 }}
+                />
+              </label>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={() => setStockModalItem(null)} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: `1px solid ${BORDER}`, background: "white", color: "#374151", cursor: "pointer", fontWeight: 700 }}>
+                  Cancel
+                </button>
+                <button onClick={saveStockUpdate} disabled={saving} style={{ flex: 1, minWidth: 120, padding: 14, borderRadius: 14, border: "none", background: PRIMARY, color: "white", cursor: "pointer", fontWeight: 700 }}>
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {historyItem && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", padding: 20 }}>
+            <div style={{ width: "100%", maxWidth: 460, background: "white", borderRadius: 18, padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 18 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>History for {historyItem.name}</h2>
+                  <p style={{ margin: "8px 0 0", color: MUTED, fontSize: 13 }}>A history viewer will show item stock and availability changes.</p>
+                </div>
+                <button onClick={() => setHistoryItem(null)} style={{ border: "none", background: "transparent", color: MUTED, fontSize: 22, lineHeight: 1, cursor: "pointer" }}>
+                  ×
+                </button>
+              </div>
+              <div style={{ padding: 18, borderRadius: 16, background: "#F8FAFC" }}>
+                <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>Detailed history is not available in the current inventory interface, but the action menu is styled and ready for future audit trail support.</p>
+              </div>
+              <div style={{ marginTop: 20, textAlign: "right" }}>
+                <button onClick={() => setHistoryItem(null)} style={{ padding: "12px 18px", borderRadius: 14, border: "none", background: PRIMARY, color: "white", cursor: "pointer", fontWeight: 700 }}>
+                  Close
                 </button>
               </div>
             </div>

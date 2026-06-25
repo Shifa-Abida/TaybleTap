@@ -14,6 +14,13 @@ import { useRouter } from "next/navigation";
 
 const navLinks = ["Features", "How It Works", "Pricing", "Demo"];
 
+/**
+ * `Navbar` — top navigation bar for restaurant owners.
+ *
+ * Renders site navigation links and authentication controls. Uses
+ * `useAuth()` to determine whether to show the authenticated
+ * dashboard/logout UI or the public login/register CTAs.
+ */
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();

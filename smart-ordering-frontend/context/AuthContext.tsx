@@ -2,6 +2,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+/**
+ * Minimal user shape stored in the auth context and localStorage.
+ */
 interface User {
   id: string;
   name: string;
@@ -12,6 +15,10 @@ interface User {
   restaurant_type: string;
 }
 
+/**
+ * Auth context API surface. Consumers can read the current user/token and
+ * perform `login`, `logout`, or `updateUser` operations.
+ */
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -24,6 +31,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/**
+ * `AuthProvider` wraps the application and synchronizes auth state with
+ * `localStorage`. On mount it attempts to rehydrate a stored `token`
+ * and `user` to preserve session across page reloads.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -67,6 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook to access the auth context. Throws when used outside of `AuthProvider`.
+ */
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

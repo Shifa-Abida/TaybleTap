@@ -1,3 +1,22 @@
+"""
+Menu HTTP views and JSON endpoints.
+
+This module implements simple REST-style endpoints for restaurant owners
+to manage their menu items. Endpoints expect a Bearer JWT in the
+`Authorization` header for authenticated actions, and fall back to a
+small demo dataset when MongoDB is unavailable or when the demo user
+is used (email: demo@taybletap.com).
+
+Key routes exposed by this module:
+- `menu_list`    : GET list / POST create
+- `menu_detail`  : GET/PUT/PATCH/DELETE per-item
+- `menu_toggle`  : PATCH toggle availability
+- `low_stock_list`: GET admin low-stock items
+
+This file focuses on HTTP handling and input validation. Business logic
+and inventory helpers are implemented in `menu.inventory`.
+"""
+
 import json
 
 import jwt

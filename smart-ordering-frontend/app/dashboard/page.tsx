@@ -1,13 +1,12 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#FF6B35";
 const GREEN = "#22C55E";
 const AMBER = "#F59E0B";
-const RED = "#F43F5E";
 const MUTED = "#9CA3AF";
 
 function KpiCard({ label, value, prefix = "", suffix = "", color, icon, sub }: {
@@ -84,7 +83,6 @@ const notifications = [
 export default function AdminDashboard() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
 

@@ -1,13 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import {
-  Camera, Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock,
+  Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock,
   MapPin, Phone, Mail, User, Store, Shield, Bell, Trash2,
-  ChevronRight, Loader2, Check, Utensils, BarChart2, QrCode,
-  LayoutDashboard, X, Upload, Globe, Wifi, WifiOff, Zap
+  ChevronRight, Loader2, Check, Utensils, QrCode,
+  X, Upload, Globe, Wifi, WifiOff, Zap
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#FF6B35";
@@ -366,7 +366,6 @@ function readStoredUserPayment() {
 export default function RestaurantSettings() {
   const { user, isLoading, updateUser } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const profileUser = user as typeof user & { payment_qr_code?: string; payment_code?: string };
 
   const [logo, setLogo] = useState<string | null>(null);

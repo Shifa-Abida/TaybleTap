@@ -5,11 +5,10 @@ import {
   Tooltip, ResponsiveContainer, LineChart, Line, Cell
 } from "recharts";
 import {
-  TrendingUp, ShoppingBag, BarChart2, Users, Star, Flame, Bell, ArrowUp, ArrowDown
+  TrendingUp, ShoppingBag, BarChart2, Users, Star, Flame, ArrowUp, ArrowDown
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import AdminLayout from "@/components/AdminLayout";
-import { useRouter, usePathname } from "next/navigation";
 
 const PRIMARY = "#FF6B35";
 const GREEN = "#22C55E";
@@ -76,9 +75,9 @@ function useCountUp(target: number, duration = 1400, start = true) {
   return count;
 }
 
-function StatCard({ label, value, prefix = "", suffix = "", icon, color, change, changeLabel, delay = 0 }: {
+function StatCard({ label, value, prefix = "", suffix = "", icon, color, change, changeLabel }: {
   label: string; value: number; prefix?: string; suffix?: string;
-  icon: React.ReactNode; color: string; change: number; changeLabel: string; delay?: number;
+  icon: React.ReactNode; color: string; change: number; changeLabel: string;
 }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -149,9 +148,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsDashboard() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"Today" | "Week" | "Month">("Today");

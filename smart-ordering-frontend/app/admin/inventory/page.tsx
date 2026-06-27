@@ -38,6 +38,8 @@ interface InventoryForm {
   is_available: boolean;
 }
 
+type DisplayStockStatus = Exclude<InventoryItem["stock_status"], "Not Tracked">;
+
 const DEMO_INVENTORY: InventoryItem[] = [
   {
     id: "1",
@@ -119,29 +121,13 @@ const DEMO_INVENTORY: InventoryItem[] = [
   },
 ];
 
-const statusColors: Record<InventoryItem["stock_status"], { color: string; background: string }> = {
+const statusColors: Record<DisplayStockStatus, { color: string; background: string }> = {
   "Out Of Stock": { color: RED, background: "rgba(229,62,62,0.12)" },
   "Low Stock": { color: AMBER, background: "rgba(245,158,11,0.12)" },
   "In Stock": { color: GREEN, background: "rgba(26,158,107,0.12)" },
 };
 
-const FOOD_PLACEHOLDER_IMAGE =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='22' fill='%23F3F4F6'/%3E%3Cpath d='M34 46c0 8.284 5.716 15 12.785 15H73.21C80.284 61 86 54.284 86 46V36H34v10z' fill='%23E5E7EB'/%3E%3Cpath d='M34 36H86v9.5c0 8-5.51 14.5-12.29 14.5H46.29C39.51 60 34 53.5 34 45.5V36z' fill='%23FFFFFF'/%3E%3Cpath d='M45 75c0 5.523 4.477 10 10 10s10-4.477 10-10V58H45v17z' fill='%23D1D5DB'/%3E%3Cpath d='M38 88c0 4.418 3.582 8 8 8h28c4.418 0 8-3.582 8-8v-4H38v4z' fill='%23E5E7EB'/%3E%3C/svg%3E";
-
-const DEMO_IMAGE_BY_NAME: Record<string, string> = {
-  "Chicken Biryani": "https://images.unsplash.com/photo-1604908177523-4b38db8292af?auto=format&fit=crop&w=200&q=80",
-  "Palak Paneer": "https://images.unsplash.com/photo-1589308078058-8d3c1a9f5924?auto=format&fit=crop&w=200&q=80",
-  "Butter Chicken": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=80",
-  "Garlic Naan": "https://images.unsplash.com/photo-1589927986089-35812389fc1b?auto=format&fit=crop&w=200&q=80",
-  "Mango Lassi": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=200&q=80",
-  "Gulab Jamun": "https://images.unsplash.com/photo-1576792379663-5c228cf82552?auto=format&fit=crop&w=200&q=80",
-};
-
-function getItemImage(item: InventoryItem) {
-  return item.imagePreview || DEMO_IMAGE_BY_NAME[item.name] || FOOD_PLACEHOLDER_IMAGE;
-}
-
-function getStockStatus(item: InventoryItem): InventoryItem["stock_status"] {
+function getStockStatus(item: InventoryItem): DisplayStockStatus {
   if (item.stock_quantity === 0) return "Out Of Stock";
   if (item.stock_quantity <= item.low_stock_threshold) return "Low Stock";
   return "In Stock";
@@ -193,12 +179,10 @@ export default function InventoryManagement() {
   const [items, setItems] = useState<InventoryItem[]>(DEMO_INVENTORY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<InventoryForm | null>(null);
   const [stockModalItem, setStockModalItem] = useState<InventoryItem | null>(null);
   const [stockModalQuantity, setStockModalQuantity] = useState(0);
-  const [error, setError] = useState("");
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [filters, setFilters] = useState({
@@ -215,7 +199,6 @@ export default function InventoryManagement() {
 
   const fetchInventory = useCallback(async () => {
     try {
-      setError("");
       const headers = getAuthHeaders();
       const menuRes = await fetch(API_ENDPOINTS.MENU, { headers });
       if (menuRes.status === 401) {
@@ -227,11 +210,9 @@ export default function InventoryManagement() {
       const menuData = await menuRes.json();
       const fetchedItems = Array.isArray(menuData.items) ? menuData.items : [];
       if (fetchedItems.length > 0) setItems(fetchedItems);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load inventory.");
+    } catch {
     } finally {
       setLoading(false);
-      setSavingItemId(null);
     }
   }, [logout]);
 
@@ -308,45 +289,6 @@ export default function InventoryManagement() {
     URL.revokeObjectURL(url);
   };
 
-  const updateStock = async (item: InventoryItem, delta: number) => {
-    const nextQuantity = Math.max(0, item.stock_quantity + delta);
-    if (nextQuantity === item.stock_quantity) return;
-    setSavingItemId(item.id);
-    setError("");
-    try {
-      const res = await fetch(API_ENDPOINTS.MENU_ITEM(item.id), {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ stock_quantity: nextQuantity }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not update stock.");
-      await fetchInventory();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update stock.");
-    } finally {
-      setSavingItemId(null);
-    }
-  };
-
-  const toggleAvailability = async (item: InventoryItem) => {
-    setSavingItemId(item.id);
-    setError("");
-    try {
-      const res = await fetch(API_ENDPOINTS.MENU_TOGGLE(item.id), {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not toggle availability.");
-      await fetchInventory();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not toggle availability.");
-    } finally {
-      setSavingItemId(null);
-    }
-  };
-
   const openEdit = (item: InventoryItem) => {
     setHistoryItem(null);
     setActionMenuId(null);
@@ -369,8 +311,6 @@ export default function InventoryManagement() {
   const saveStockUpdate = async () => {
     if (!stockModalItem) return;
     setSaving(true);
-    setSavingItemId(stockModalItem.id);
-    setError("");
     try {
       const res = await fetch(API_ENDPOINTS.MENU_ITEM(stockModalItem.id), {
         method: "PATCH",
@@ -381,11 +321,29 @@ export default function InventoryManagement() {
       if (!res.ok) throw new Error(data.error || "Could not update stock.");
       await fetchInventory();
       setStockModalItem(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update stock.");
+    } catch {
     } finally {
       setSaving(false);
-      setSavingItemId(null);
+    }
+  };
+
+  const saveInventory = async () => {
+    if (!editing || !form) return;
+    setSaving(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.MENU_ITEM(editing.id), {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not save inventory.");
+      await fetchInventory();
+      setEditing(null);
+      setForm(null);
+    } catch {
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -397,19 +355,6 @@ export default function InventoryManagement() {
   const formatUpdatedAt = (item: InventoryItem) => {
     const timestamp = (item as any).updated_at || (item as any).created_at;
     return getRelativeTimeLabel(timestamp);
-  };
-
-  const getProgressColor = (item: InventoryItem) => {
-    const status = getStockStatus(item);
-    if (status === "Out Of Stock") return RED;
-    if (status === "Low Stock") return AMBER;
-    return GREEN;
-  };
-
-  const getProgressValue = (item: InventoryItem) => {
-    if (item.stock_quantity === 0) return 0;
-    if (item.low_stock_threshold <= 0) return 100;
-    return Math.min(100, Math.round((item.stock_quantity / item.low_stock_threshold) * 100));
   };
 
   if (isLoading || loading) {
@@ -557,7 +502,6 @@ export default function InventoryManagement() {
               <tbody>
                 {pagedItems.map((item) => {
                   const status = statusColors[getStockStatus(item)];
-                  const isToggling = savingItemId === item.id;
                   return (
 <tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}`, borderLeft: `4px solid ${status.color}`, background: "#FFFFFF" }}>
                       <td style={{ padding: 10, color: "#1F2937", fontSize: 13, fontWeight: 700 }}>{item.name}</td>

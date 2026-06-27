@@ -10,7 +10,6 @@ import { motion } from "framer-motion";
 import { UtensilsCrossed, Menu, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 
 const navLinks = ["Features", "How It Works", "Pricing", "Demo"];
 
@@ -23,7 +22,6 @@ const navLinks = ["Features", "How It Works", "Pricing", "Demo"];
  */
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
-  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 

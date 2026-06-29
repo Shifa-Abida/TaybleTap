@@ -121,11 +121,11 @@ def public_menu(request):
     No authentication required.
     """
     if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     restaurant_id = request.GET.get("resto", "").strip()
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required (resto param)"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
 
     if restaurant_id == "demo":
         return JsonResponse({
@@ -173,7 +173,7 @@ def public_menu(request):
         })
 
     except Exception:
-        return JsonResponse({"error": "Failed to load menu. Please try again later."}, status=500)
+        return JsonResponse({"error": "Unable to load menu. Please try again later."}, status=500)
 
 
 # ─── RESTAURANT INFO ──────────────────────────────────────────────────────────
@@ -185,17 +185,17 @@ def recommendations(request):
     Rule-based smart suggestions for the customer menu.
     """
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
     restaurant_id = data.get("restaurant_id", "").strip()
     query = data.get("query", "").strip().lower()
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
 
     try:
         raw_items = list(get_collection("menu_items").find({
@@ -254,12 +254,12 @@ def request_customer_otp(request):
     Starts phone verification for personalized customer ordering.
     """
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
     restaurant_id = (data.get("restaurant_id") or "").strip()
     table = data.get("table")
@@ -267,11 +267,11 @@ def request_customer_otp(request):
     phone = _normalize_phone(data.get("phone"))
 
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
     if not name or len(name) < 2:
-        return JsonResponse({"error": "Please enter your full name"}, status=400)
+        return JsonResponse({"error": "Please enter your full name."}, status=400)
     if len(phone) < 10 or len(phone) > 15:
-        return JsonResponse({"error": "Please enter a valid phone number"}, status=400)
+        return JsonResponse({"error": "Please enter a valid phone number."}, status=400)
 
     otp_code = f"{random.randint(100000, 999999)}"
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)
@@ -318,12 +318,12 @@ def verify_customer_otp(request):
     Verifies OTP and stores/updates the customer profile.
     """
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
     restaurant_id = (data.get("restaurant_id") or "").strip()
     table = data.get("table")
@@ -331,7 +331,7 @@ def verify_customer_otp(request):
     otp = (data.get("otp") or "").strip()
 
     if not restaurant_id or not phone or not otp:
-        return JsonResponse({"error": "Restaurant ID, phone, and OTP are required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID, phone, and OTP are required."}, status=400)
 
     key = _otp_key(restaurant_id, phone)
     otp_doc = None
@@ -412,11 +412,11 @@ def restaurant_info(request):
     No authentication required.
     """
     if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     restaurant_id = request.GET.get("resto", "").strip()
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
 
     if restaurant_id == "demo":
         return JsonResponse({
@@ -432,7 +432,7 @@ def restaurant_info(request):
         restaurant = users.find_one({"_id": ObjectId(restaurant_id)})
 
         if not restaurant:
-            return JsonResponse({"error": "Restaurant not found"}, status=404)
+            return JsonResponse({"error": "Restaurant not found."}, status=404)
 
         return JsonResponse({
             "restaurant_name": restaurant.get("restaurant_name", "") or restaurant.get("name", ""),
@@ -442,7 +442,7 @@ def restaurant_info(request):
             "payment_qr_code": restaurant.get("payment_qr_code", ""),
         })
     except Exception:
-        return JsonResponse({"error": "Restaurant not found"}, status=404)
+        return JsonResponse({"error": "Restaurant not found."}, status=404)
 
 
 # ─── PLACE ORDER (CUSTOMER) ───────────────────────────────────────────────────
@@ -459,12 +459,12 @@ def place_order(request):
     No authentication required — customer places order via QR link.
     """
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
     restaurant_id = data.get("restaurant_id", "").strip()
     table = data.get("table")
@@ -474,11 +474,11 @@ def place_order(request):
 
     # ── Validation ──
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
     if not table or not isinstance(table, int):
-        return JsonResponse({"error": "Table number is required"}, status=400)
+        return JsonResponse({"error": "Table number is required."}, status=400)
     if not items or not isinstance(items, list) or len(items) == 0:
-        return JsonResponse({"error": "At least one item is required"}, status=400)
+        return JsonResponse({"error": "At least one item is required."}, status=400)
 
     users = get_collection("users")
     try:
@@ -488,12 +488,12 @@ def place_order(request):
 
     expected_code = (restaurant or {}).get("payment_code", "").strip()
     if expected_code and payment_code.upper() != expected_code.upper():
-        return JsonResponse({"error": "Invalid payment verification code"}, status=400)
+        return JsonResponse({"error": "Invalid payment verification code."}, status=400)
 
     # Validate each item before touching inventory.
     for item in items:
         if not item.get("id") and not item.get("name"):
-            return JsonResponse({"error": "Each item must include a menu item ID"}, status=400)
+            return JsonResponse({"error": "Each item must include a menu item ID."}, status=400)
 
     menu_items = get_collection("menu_items")
     try:
@@ -549,25 +549,25 @@ def order_status(request, order_id):
     No authentication required.
     """
     if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     restaurant_id = request.GET.get("resto", "").strip()
     if not restaurant_id:
-        return JsonResponse({"error": "Restaurant ID is required"}, status=400)
+        return JsonResponse({"error": "Restaurant ID is required."}, status=400)
 
     try:
         orders = get_collection("orders")
         oid = ObjectId(order_id)
     except Exception:
-        return JsonResponse({"error": "Invalid order ID"}, status=400)
+        return JsonResponse({"error": "Invalid order ID."}, status=400)
 
     try:
         order = orders.find_one({"_id": oid, "user_id": restaurant_id})
     except Exception:
-        return JsonResponse({"error": "Failed to load order"}, status=500)
+        return JsonResponse({"error": "Unable to load order."}, status=500)
 
     if not order:
-        return JsonResponse({"error": "Order not found"}, status=404)
+        return JsonResponse({"error": "Order not found."}, status=404)
 
     created_at = order.get("created_at", "")
     updated_at = order.get("updated_at", "")

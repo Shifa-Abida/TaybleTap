@@ -203,9 +203,9 @@ export default function InventoryManagement() {
       const menuRes = await fetch(API_ENDPOINTS.MENU, { headers });
       if (menuRes.status === 401) {
         await logout();
-        throw new Error("Your session expired. Please log in again.");
+        throw new Error("Your session has expired. Please log in again.");
       }
-      if (!menuRes.ok) throw new Error("Could not load inventory.");
+      if (!menuRes.ok) throw new Error("Unable to load inventory.");
 
       const menuData = await menuRes.json();
       const fetchedItems = Array.isArray(menuData.items) ? menuData.items : [];
@@ -318,7 +318,7 @@ export default function InventoryManagement() {
         body: JSON.stringify({ stock_quantity: Math.max(0, stockModalQuantity) }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not update stock.");
+      if (!res.ok) throw new Error(data.error || "Unable to update stock.");
       await fetchInventory();
       setStockModalItem(null);
     } catch {
@@ -337,7 +337,7 @@ export default function InventoryManagement() {
         body: JSON.stringify(form),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not save inventory.");
+      if (!res.ok) throw new Error(data.error || "Unable to save inventory.");
       await fetchInventory();
       setEditing(null);
       setForm(null);

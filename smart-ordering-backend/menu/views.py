@@ -89,11 +89,11 @@ def _validate_menu_fields(data):
     price = data.get("price")
     category = data.get("category", "Starters")
     if not name:
-        raise ValueError("Item name is required")
+        raise ValueError("Item name is required.")
     if isinstance(price, bool) or not isinstance(price, (int, float)) or price < 0:
-        raise ValueError("Valid price is required")
+        raise ValueError("A valid price is required.")
     if category not in CATEGORIES:
-        raise ValueError("Invalid category")
+        raise ValueError("Invalid category.")
     return name, float(price), category
 
 
@@ -102,19 +102,19 @@ def menu_list(request):
     """GET: list menu items. POST: create a menu item."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     if user.get("user_id") == "demo-user-id-123":
         if request.method == "GET":
             return _demo_menu_response()
-        return JsonResponse({"error": "Demo mode - create not supported"}, status=403)
+        return JsonResponse({"error": "Creating menu items is not supported in demo mode."}, status=403)
 
     try:
         collection = get_collection("menu_items")
     except Exception:
         if request.method == "GET":
             return _demo_menu_response()
-        return JsonResponse({"error": "Database unavailable"}, status=503)
+        return JsonResponse({"error": "Database unavailable. Please try again later."}, status=503)
 
     if request.method == "GET":
         try:
@@ -126,7 +126,7 @@ def menu_list(request):
     if request.method == "POST":
         data = _load_json(request)
         if data is None:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         try:
             name, price, category = _validate_menu_fields(data)
@@ -152,7 +152,7 @@ def menu_list(request):
         menu_item["_id"] = result.inserted_id
         return JsonResponse(_format_menu_item(menu_item), status=201)
 
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    return JsonResponse({"error": "Method not allowed."}, status=405)
 
 
 @csrf_exempt
@@ -160,17 +160,17 @@ def menu_detail(request, item_id):
     """GET/PUT/PATCH/DELETE a specific menu item."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     collection = get_collection("menu_items")
     try:
         oid = ObjectId(item_id)
     except Exception:
-        return JsonResponse({"error": "Invalid item ID"}, status=400)
+        return JsonResponse({"error": "Invalid item ID."}, status=400)
 
     item = collection.find_one({"_id": oid, "user_id": user["user_id"]})
     if not item:
-        return JsonResponse({"error": "Item not found"}, status=404)
+        return JsonResponse({"error": "Item not found."}, status=404)
 
     if request.method == "GET":
         return JsonResponse(_format_menu_item(item))
@@ -178,7 +178,7 @@ def menu_detail(request, item_id):
     if request.method == "PUT":
         data = _load_json(request)
         if data is None:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         try:
             name, price, category = _validate_menu_fields(data)
             inventory = inventory_document(data, item)
@@ -196,15 +196,15 @@ def menu_detail(request, item_id):
         try:
             collection.update_one({"_id": oid}, {"$set": updates})
         except Exception:
-            return JsonResponse({"error": "Could not update menu item."}, status=500)
+            return JsonResponse({"error": "Unable to update menu item."}, status=500)
         return JsonResponse(_format_menu_item({**item, **updates}))
 
     if request.method == "PATCH":
         data = _load_json(request)
         if data is None:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         if not any(field in data for field in INVENTORY_PATCH_FIELDS):
-            return JsonResponse({"error": "No inventory fields supplied"}, status=400)
+            return JsonResponse({"error": "No inventory fields were provided."}, status=400)
         try:
             updates = inventory_document(data, item)
         except ValueError as exc:
@@ -213,44 +213,44 @@ def menu_detail(request, item_id):
         try:
             collection.update_one({"_id": oid}, {"$set": updates})
         except Exception:
-            return JsonResponse({"error": "Could not update menu item."}, status=500)
+            return JsonResponse({"error": "Unable to update menu item."}, status=500)
         return JsonResponse(_format_menu_item({**item, **updates}))
 
     if request.method == "DELETE":
         try:
             collection.delete_one({"_id": oid})
         except Exception:
-            return JsonResponse({"error": "Could not delete menu item."}, status=500)
+            return JsonResponse({"error": "Unable to delete menu item."}, status=500)
         return JsonResponse({"message": "Menu item deleted"})
 
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    return JsonResponse({"error": "Method not allowed."}, status=405)
 
 
 @csrf_exempt
 def menu_toggle(request, item_id):
     """PATCH: toggle availability of a menu item."""
     if request.method != "PATCH":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     collection = get_collection("menu_items")
     try:
         oid = ObjectId(item_id)
     except Exception:
-        return JsonResponse({"error": "Invalid item ID"}, status=400)
+        return JsonResponse({"error": "Invalid item ID."}, status=400)
 
     item = collection.find_one({"_id": oid, "user_id": user["user_id"]})
     if not item:
-        return JsonResponse({"error": "Item not found"}, status=404)
+        return JsonResponse({"error": "Item not found."}, status=404)
 
     updates = inventory_document({"is_available": not is_available(item)}, item)
     try:
         collection.update_one({"_id": oid}, {"$set": updates})
     except Exception:
-        return JsonResponse({"error": "Could not update menu item."}, status=500)
+        return JsonResponse({"error": "Unable to update menu item."}, status=500)
     return JsonResponse(_format_menu_item({**item, **updates}))
 
 
@@ -258,11 +258,11 @@ def menu_toggle(request, item_id):
 def low_stock_list(request):
     """GET: list tracked menu items at or below their low-stock threshold."""
     if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
     if user.get("user_id") == "demo-user-id-123":
         return JsonResponse({"items": []})
 

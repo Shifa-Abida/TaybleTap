@@ -400,7 +400,7 @@ export default function RestaurantSettings() {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
-  const pwError = confirmPw && newPw !== confirmPw ? "Passwords don't match" : "";
+  const pwError = confirmPw && newPw !== confirmPw ? "Passwords do not match." : "";
 
   const completionPercent = (() => {
     let score = 0;
@@ -442,10 +442,10 @@ export default function RestaurantSettings() {
         updateUser(data.user);
         showToast("Changes saved successfully");
       } else {
-        showToast(data.error || "Failed to save changes", "error");
+        showToast(data.error || "Unable to save changes. Please try again.", "error");
       }
     } catch {
-      showToast("Cannot connect to server", "error");
+      showToast("Unable to connect to the server. Please try again later.", "error");
     } finally {
       setSaving(false);
     }

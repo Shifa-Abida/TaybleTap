@@ -47,7 +47,7 @@ export default function LoginPage() {
         setError(data.error || "Invalid credentials. Please try again.");
       }
     } catch {
-      setError("Cannot connect to server. Please try again later.");
+      setError("Unable to connect to the server. Please try again later.");
     } finally {
       setLoading(false);
     }

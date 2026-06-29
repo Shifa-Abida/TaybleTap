@@ -70,13 +70,13 @@ def tables_list(request):
        POST: Create a new table."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     # Demo mode: return mock data for demo user
     if user.get("user_id") == "demo-user-id-123":
         if request.method == "GET":
             return JsonResponse({"tables": DEMO_TABLES})
-        return JsonResponse({"error": "Demo mode - create not supported"}, status=403)
+        return JsonResponse({"error": "Creating tables is not supported in demo mode."}, status=403)
 
     try:
         collection = get_tables_collection()
@@ -84,7 +84,7 @@ def tables_list(request):
         # MongoDB unavailable - return demo data
         if request.method == "GET":
             return JsonResponse({"tables": DEMO_TABLES})
-        return JsonResponse({"error": "Database unavailable"}, status=503)
+        return JsonResponse({"error": "Database unavailable. Please try again later."}, status=503)
 
     if request.method == "GET":
         try:
@@ -108,13 +108,13 @@ def tables_list(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         table_number = data.get("table_number")
         table_name = data.get("table_name", "").strip()
 
         if table_number is None or not isinstance(table_number, int) or table_number < 1:
-            return JsonResponse({"error": "Valid table number is required"}, status=400)
+            return JsonResponse({"error": "A valid table number is required."}, status=400)
 
         # Check if table number already exists for this restaurant
         existing = collection.find_one({
@@ -122,7 +122,7 @@ def tables_list(request):
             "table_number": table_number
         })
         if existing:
-            return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
+            return JsonResponse({"error": f"Table {table_number} already exists."}, status=400)
 
         # Generate QR code pointing to customer-facing menu
         qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
@@ -154,7 +154,7 @@ def tables_detail(request, table_id):
     """GET/PUT/DELETE a specific table."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_tables_collection()
@@ -164,11 +164,11 @@ def tables_detail(request, table_id):
     try:
         oid = ObjectId(table_id)
     except Exception:
-        return JsonResponse({"error": "Invalid table ID"}, status=400)
+        return JsonResponse({"error": "Invalid table ID."}, status=400)
 
     table = collection.find_one({"_id": oid, "restaurant_id": user["user_id"]})
     if not table:
-        return JsonResponse({"error": "Table not found"}, status=404)
+        return JsonResponse({"error": "Table not found."}, status=404)
 
     if request.method == "GET":
         return JsonResponse({
@@ -184,14 +184,14 @@ def tables_detail(request, table_id):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         table_number = data.get("table_number")
         table_name = data.get("table_name", "").strip()
         is_active = data.get("is_active", True)
 
         if table_number is None or not isinstance(table_number, int) or table_number < 1:
-            return JsonResponse({"error": "Valid table number is required"}, status=400)
+            return JsonResponse({"error": "A valid table number is required."}, status=400)
 
         # Check if new table number conflicts with another table
         if table_number != table.get("table_number"):
@@ -201,7 +201,7 @@ def tables_detail(request, table_id):
                 "_id": {"$ne": oid}
             })
             if existing:
-                return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
+                return JsonResponse({"error": f"Table {table_number} already exists."}, status=400)
 
         # Regenerate QR code pointing to customer-facing menu
         qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
@@ -220,14 +220,14 @@ def tables_detail(request, table_id):
                 }}
             )
         except Exception:
-            return JsonResponse({"error": "Could not update table."}, status=500)
+            return JsonResponse({"error": "Unable to update table."}, status=500)
         return JsonResponse({"message": "Table updated"})
 
     elif request.method == "DELETE":
         try:
             collection.delete_one({"_id": oid})
         except Exception:
-            return JsonResponse({"error": "Could not delete table."}, status=500)
+            return JsonResponse({"error": "Unable to delete table."}, status=500)
         return JsonResponse({"message": "Table deleted"})
 
 
@@ -236,7 +236,7 @@ def tables_toggle(request, table_id):
     """PATCH: Toggle active status of a table."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_tables_collection()
@@ -246,20 +246,20 @@ def tables_toggle(request, table_id):
     try:
         oid = ObjectId(table_id)
     except Exception:
-        return JsonResponse({"error": "Invalid table ID"}, status=400)
+        return JsonResponse({"error": "Invalid table ID."}, status=400)
 
     try:
         table = collection.find_one({"_id": oid, "restaurant_id": user["user_id"]})
     except Exception:
         return JsonResponse({"error": "Unable to load table details."}, status=500)
     if not table:
-        return JsonResponse({"error": "Table not found"}, status=404)
+        return JsonResponse({"error": "Table not found."}, status=404)
 
     current = table.get("is_active", True)
     try:
         collection.update_one({"_id": oid}, {"$set": {"is_active": not current}})
     except Exception:
-        return JsonResponse({"error": "Could not update table status."}, status=500)
+        return JsonResponse({"error": "Unable to update table status."}, status=500)
 
     return JsonResponse({"is_active": not current})
 
@@ -269,7 +269,7 @@ def tables_qr(request, table_id):
     """GET: Get QR code image for a specific table."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_tables_collection()
@@ -279,11 +279,11 @@ def tables_qr(request, table_id):
     try:
         oid = ObjectId(table_id)
     except Exception:
-        return JsonResponse({"error": "Invalid table ID"}, status=400)
+        return JsonResponse({"error": "Invalid table ID."}, status=400)
 
     table = collection.find_one({"_id": oid, "restaurant_id": user["user_id"]})
     if not table:
-        return JsonResponse({"error": "Table not found"}, status=404)
+        return JsonResponse({"error": "Table not found."}, status=404)
 
     # Return the QR code as an image
     qr_code = table.get("qr_code", "")
@@ -293,7 +293,7 @@ def tables_qr(request, table_id):
         image_data = base64.b64decode(base64_data)
         return HttpResponse(image_data, content_type="image/png")
 
-    return JsonResponse({"error": "QR code not found"}, status=404)
+    return JsonResponse({"error": "QR code not found."}, status=404)
 
 
 @csrf_exempt
@@ -301,10 +301,10 @@ def tables_generate_all(request):
     """POST: Regenerate QR codes for all tables."""
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Method not allowed."}, status=405)
 
     try:
         collection = get_tables_collection()

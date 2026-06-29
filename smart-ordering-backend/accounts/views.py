@@ -158,7 +158,7 @@ def login(request):
     except Exception as e:
         # MongoDB unavailable - return error
         return Response(
-            {"error": "Database unavailable. Try demo@taybletap.com / demo123"},
+            {"error": "Database unavailable. Please try again later or use demo@taybletap.com / demo123."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
@@ -190,7 +190,7 @@ def me(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return Response(
-            {"error": "Authentication required."},
+            {"error": "Authentication is required."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -200,7 +200,7 @@ def me(request):
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return Response(
-            {"error": "Token has expired. Please login again."},
+            {"error": "Your session has expired. Please log in again."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
     except jwt.InvalidTokenError:
@@ -253,13 +253,13 @@ def profile_update(request):
     """
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Authentication is required."}, status=status.HTTP_401_UNAUTHORIZED)
 
     token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Invalid or expired token."}, status=status.HTTP_401_UNAUTHORIZED)
 
     data = request.data
     try:
@@ -286,7 +286,7 @@ def profile_update(request):
             update_fields[field] = data[field]
 
     if not update_fields:
-        return Response({"error": "No valid fields to update"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "No valid fields were provided to update."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         users.update_one({"_id": ObjectId(payload["user_id"])}, {"$set": update_fields})

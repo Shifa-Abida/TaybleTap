@@ -60,7 +60,7 @@ def _make_order_id(user_id: str) -> str:
 def order_list(request):
     user = _get_user(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_collection("orders")
@@ -86,15 +86,15 @@ def order_list(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         table = data.get("table")
         items = data.get("items", [])
 
         if not table or not isinstance(table, int):
-            return JsonResponse({"error": "Table number is required"}, status=400)
+            return JsonResponse({"error": "Table number is required."}, status=400)
         if not items or not isinstance(items, list):
-            return JsonResponse({"error": "At least one item is required"}, status=400)
+            return JsonResponse({"error": "At least one item is required."}, status=400)
 
         total = sum(item.get("price", 0) * item.get("qty", 0) for item in items)
 
@@ -121,7 +121,7 @@ def order_list(request):
 def order_detail(request, order_id):
     user = _get_user(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_collection("orders")
@@ -131,7 +131,7 @@ def order_detail(request, order_id):
     try:
         oid = ObjectId(order_id)
     except Exception:
-        return JsonResponse({"error": "Invalid order ID"}, status=400)
+        return JsonResponse({"error": "Invalid order ID."}, status=400)
 
     try:
         order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
@@ -139,7 +139,7 @@ def order_detail(request, order_id):
         return JsonResponse({"error": "Unable to load order."}, status=500)
 
     if not order:
-        return JsonResponse({"error": "Order not found"}, status=404)
+        return JsonResponse({"error": "Order not found."}, status=404)
 
     if request.method == "GET":
         return JsonResponse(_format_order(order))
@@ -148,7 +148,7 @@ def order_detail(request, order_id):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         new_status = data.get("status")
         if new_status and new_status in VALID_STATUSES:
@@ -158,7 +158,7 @@ def order_detail(request, order_id):
                     {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
                 )
             except Exception:
-                return JsonResponse({"error": "Could not update order."}, status=500)
+                return JsonResponse({"error": "Unable to update order."}, status=500)
             order["status"] = new_status
 
         return JsonResponse(_format_order(order))
@@ -170,7 +170,7 @@ def order_status(request, order_id):
     """PATCH /api/orders/<order_id>/status/ — transition to a new status."""
     user = _get_user(request)
     if not user:
-        return JsonResponse({"error": "Authentication required"}, status=401)
+        return JsonResponse({"error": "Authentication is required."}, status=401)
 
     try:
         collection = get_collection("orders")
@@ -180,7 +180,7 @@ def order_status(request, order_id):
     try:
         oid = ObjectId(order_id)
     except Exception:
-        return JsonResponse({"error": "Invalid order ID"}, status=400)
+        return JsonResponse({"error": "Invalid order ID."}, status=400)
 
     try:
         order = collection.find_one({"_id": oid, "user_id": user["user_id"]})
@@ -188,17 +188,17 @@ def order_status(request, order_id):
         return JsonResponse({"error": "Unable to load order."}, status=500)
 
     if not order:
-        return JsonResponse({"error": "Order not found"}, status=404)
+        return JsonResponse({"error": "Order not found."}, status=404)
 
     if request.method == "PATCH":
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
         new_status = data.get("status")
         if not new_status or new_status not in VALID_STATUSES:
-            return JsonResponse({"error": "Valid status required"}, status=400)
+            return JsonResponse({"error": "A valid status is required."}, status=400)
 
         try:
             collection.update_one(
@@ -206,7 +206,7 @@ def order_status(request, order_id):
                 {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
             )
         except Exception:
-            return JsonResponse({"error": "Could not update order."}, status=500)
+            return JsonResponse({"error": "Unable to update order."}, status=500)
 
         try:
             updated = collection.find_one({"_id": oid})

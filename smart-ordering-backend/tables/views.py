@@ -11,7 +11,7 @@ import qrcode
 
 from tables.db import get_tables_collection
 
-# Get the frontend URL from environment or use default
+# Get the frontend URL from the environment or use the default.
 FRONTEND_URL = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
 
 # Demo tables for when MongoDB is unavailable

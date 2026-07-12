@@ -375,10 +375,10 @@ export default function QRGenerator() {
         setEditTable(null);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to save table");
+        alert(data.error || "Unable to save table. Please try again.");
       }
     } catch {
-      alert("Failed to save table");
+      alert("Unable to save table. Please try again.");
     }
   };
 
@@ -394,7 +394,7 @@ export default function QRGenerator() {
         setDeleteTable(null);
       }
     } catch {
-      alert("Failed to delete table");
+      alert("Unable to delete table. Please try again.");
     }
   };
 

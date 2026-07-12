@@ -61,7 +61,7 @@ export default function RegisterPage() {
         setStep(1);
       }
     } catch {
-      setError("Cannot connect to server. Please try again later.");
+      setError("Unable to connect to the server. Please try again later.");
     } finally {
       setLoading(false);
     }

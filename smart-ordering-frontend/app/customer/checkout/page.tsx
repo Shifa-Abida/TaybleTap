@@ -163,7 +163,7 @@ function CheckoutInner() {
       const err = await res.json().catch(() => ({}));
       alert(err.error || "Payment code could not be verified.");
     } catch {
-      alert("Failed to place order. Please try again.");
+      alert("Unable to place order. Please try again.");
     } finally {
       setPlacingOrder(false);
     }

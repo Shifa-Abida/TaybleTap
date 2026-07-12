@@ -1,11 +1,21 @@
-// API Configuration - Centralized API base URL
-// In production, use environment variables
-
+/**
+ * API Configuration
+ *
+ * Centralized API base URL and endpoints for the frontend to call the
+ * backend services. In production, set `NEXT_PUBLIC_API_URL` in the
+ * environment to point to the deployed backend.
+ */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const API_URL = API_BASE_URL;
 
-// Helper function to get auth headers
+/**
+ * Build the standard auth headers for JSON API requests.
+ *
+ * Reads a stored `token` from `localStorage` (browser-only) and returns a
+ * `HeadersInit` object containing `Content-Type` and optional
+ * `Authorization: Bearer <token>` when available.
+ */
 export function getAuthHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const headers: HeadersInit = {
@@ -17,7 +27,11 @@ export function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
-// API endpoints
+/**
+ * Canonical API endpoint paths used across the frontend.
+ *
+ * Use `API_ENDPOINTS.MENU_ITEM(id)` to build item-specific URLs, etc.
+ */
 export const API_ENDPOINTS = {
   // Auth
   LOGIN: `${API_URL}/api/auth/login/`,

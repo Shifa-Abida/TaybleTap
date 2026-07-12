@@ -10,13 +10,18 @@ import { motion } from "framer-motion";
 import { UtensilsCrossed, Menu, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 
 const navLinks = ["Features", "How It Works", "Pricing", "Demo"];
 
+/**
+ * `Navbar` — top navigation bar for restaurant owners.
+ *
+ * Renders site navigation links and authentication controls. Uses
+ * `useAuth()` to determine whether to show the authenticated
+ * dashboard/logout UI or the public login/register CTAs.
+ */
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
-  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 

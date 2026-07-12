@@ -570,7 +570,7 @@ function PersonalizationOtpScreen({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Could not send OTP. Please try again.");
+        setError(data.error || "Unable to send OTP. Please try again.");
         return;
       }
       setPhone(cleanPhone);
@@ -580,7 +580,7 @@ function PersonalizationOtpScreen({
         setDevOtp(data.dev_otp);
       }
     } catch {
-      setError("Could not connect to OTP service. Please try again.");
+      setError("Unable to connect to the OTP service. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -591,7 +591,7 @@ function PersonalizationOtpScreen({
     setInfo("");
     const cleanOtp = otp.trim();
     if (!/^\d{6}$/.test(cleanOtp)) {
-      setError("Enter the 6-digit OTP.");
+      setError("Please enter the 6-digit OTP.");
       return;
     }
 
@@ -609,12 +609,12 @@ function PersonalizationOtpScreen({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "OTP verification failed.");
+        setError(data.error || "OTP verification failed. Please try again.");
         return;
       }
       onVerified(data.customer);
     } catch {
-      setError("Could not verify OTP. Please try again.");
+      setError("Unable to verify OTP. Please try again.");
     } finally {
       setSubmitting(false);
     }

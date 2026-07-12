@@ -76,7 +76,13 @@ def register(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    users = get_collection("users")
+    try:
+        users = get_collection("users")
+    except Exception:
+        return Response(
+            {"error": "Database unavailable. Please try again later."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     # Check if email already exists
     if users.find_one({"email": email}):
@@ -99,7 +105,14 @@ def register(request):
         "created_at": datetime.datetime.now(datetime.timezone.utc),
     }
 
-    result = users.insert_one(user_doc)
+    try:
+        result = users.insert_one(user_doc)
+    except Exception:
+        return Response(
+            {"error": "Database unavailable. Please try again later."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
     user_doc["_id"] = result.inserted_id
 
     token = _generate_token(str(result.inserted_id), email)
@@ -149,7 +162,7 @@ def login(request):
     except Exception as e:
         # MongoDB unavailable - return error
         return Response(
-            {"error": "Database unavailable. Try demo@taybletap.com / demo123"},
+            {"error": "Database unavailable. Please try again later or use demo@taybletap.com / demo123."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
@@ -181,7 +194,7 @@ def me(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return Response(
-            {"error": "Authentication required."},
+            {"error": "Authentication is required."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -191,7 +204,7 @@ def me(request):
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return Response(
-            {"error": "Token has expired. Please login again."},
+            {"error": "Your session has expired. Please log in again."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
     except jwt.InvalidTokenError:
@@ -200,9 +213,15 @@ def me(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
-    users = get_collection("users")
-    from bson import ObjectId
-    user = users.find_one({"_id": ObjectId(payload["user_id"])})
+    try:
+        users = get_collection("users")
+        from bson import ObjectId
+        user = users.find_one({"_id": ObjectId(payload["user_id"])})
+    except Exception:
+        return Response(
+            {"error": "User not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     if not user:
         return Response(
@@ -238,17 +257,23 @@ def profile_update(request):
     """
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Authentication is required."}, status=status.HTTP_401_UNAUTHORIZED)
 
     token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Invalid or expired token."}, status=status.HTTP_401_UNAUTHORIZED)
 
     data = request.data
-    users = get_collection("users")
-    from bson import ObjectId
+    try:
+        users = get_collection("users")
+        from bson import ObjectId
+    except Exception:
+        return Response(
+            {"error": "Database unavailable. Please try again later."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     update_fields = {}
     allowed_fields = [
@@ -265,10 +290,16 @@ def profile_update(request):
             update_fields[field] = data[field]
 
     if not update_fields:
-        return Response({"error": "No valid fields to update"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "No valid fields were provided to update."}, status=status.HTTP_400_BAD_REQUEST)
 
-    users.update_one({"_id": ObjectId(payload["user_id"])}, {"$set": update_fields})
-    user = users.find_one({"_id": ObjectId(payload["user_id"])})
+    try:
+        users.update_one({"_id": ObjectId(payload["user_id"])}, {"$set": update_fields})
+        user = users.find_one({"_id": ObjectId(payload["user_id"])})
+    except Exception:
+        return Response(
+            {"error": "Database unavailable. Please try again later."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     return Response({
         "user": {

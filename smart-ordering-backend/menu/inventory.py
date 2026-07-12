@@ -63,14 +63,14 @@ def public_inventory_fields(item):
 def _non_negative_int(data, key, default):
     value = data.get(key, default)
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise ValueError(f"{key} must be a non-negative integer")
+        raise ValueError(f"{key} must be a non-negative integer.")
     return value
 
 
 def _boolean(data, key, default):
     value = data.get(key, default)
     if not isinstance(value, bool):
-        raise ValueError(f"{key} must be true or false")
+        raise ValueError(f"{key} must be true or false.")
     return value
 
 
@@ -117,11 +117,11 @@ def _menu_item_query(restaurant_id, requested_item):
         try:
             return {"_id": ObjectId(item_id), "user_id": restaurant_id}
         except Exception as exc:
-            raise InventoryError("Invalid menu item") from exc
+            raise InventoryError("Invalid menu item.") from exc
 
     name = str(requested_item.get("name", "")).strip()
     if not name:
-        raise InventoryError("Each item must include a menu item ID")
+        raise InventoryError("Each item must include a menu item ID.")
     return {"user_id": restaurant_id, "name": name}
 
 
@@ -152,7 +152,7 @@ def reserve_order_stock(collection, restaurant_id, requested_items):
     for requested_item in requested_items:
         qty = requested_item.get("qty", 1)
         if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
-            raise InventoryError("Each item quantity must be a positive integer")
+            raise InventoryError("Each item quantity must be a positive integer.")
 
         key = _requested_item_key(requested_item)
         if key in grouped:
@@ -165,14 +165,14 @@ def reserve_order_stock(collection, restaurant_id, requested_items):
     for requested_item in grouped.values():
         menu_item = collection.find_one(_menu_item_query(restaurant_id, requested_item))
         if not menu_item:
-            raise InventoryError("Menu item not found")
+            raise InventoryError("Menu item not found.")
         if not is_available(menu_item):
-            raise InventoryError(f"{menu_item.get('name', 'Item')} is unavailable")
+            raise InventoryError(f"{menu_item.get('name', 'Item')} is unavailable.")
 
         values = inventory_values(menu_item)
         qty = requested_item["qty"]
         if values["track_stock"] and qty > values["stock_quantity"]:
-            raise InventoryError(f"Only {values['stock_quantity']} left for {menu_item.get('name', 'item')}")
+            raise InventoryError(f"Only {values['stock_quantity']} left for {menu_item.get('name', 'item')}.")
 
         authoritative_items.append({
             "id": str(menu_item["_id"]),
@@ -200,9 +200,9 @@ def reserve_order_stock(collection, restaurant_id, requested_items):
             if not updated:
                 current = collection.find_one({"_id": menu_item["_id"]}) or menu_item
                 if not is_available(current):
-                    raise InventoryError(f"{menu_item.get('name', 'Item')} is unavailable")
+                    raise InventoryError(f"{menu_item.get('name', 'Item')} is unavailable.")
                 raise InventoryError(
-                    f"Only {inventory_values(current)['stock_quantity']} left for {menu_item.get('name', 'item')}"
+                    f"Only {inventory_values(current)['stock_quantity']} left for {menu_item.get('name', 'item')}."
                 )
 
             reserved.append({"_id": menu_item["_id"], "qty": qty})

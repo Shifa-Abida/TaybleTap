@@ -1,13 +1,14 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import {
-  Camera, Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock,
+  Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock,
   MapPin, Phone, Mail, User, Store, Shield, Bell, Trash2,
-  ChevronRight, Loader2, Check, Utensils, BarChart2, QrCode,
-  LayoutDashboard, X, Upload, Globe, Wifi, WifiOff, Zap
+  ChevronRight, Loader2, Check, Utensils, QrCode,
+  X, Upload, Globe, Wifi, WifiOff, Zap
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout";
 
 const PRIMARY = "#FF6B35";
 const PRIMARY_SOFT = "rgba(255,107,53,0.08)";
@@ -20,14 +21,7 @@ const BORDER = "#F0EDE8";
 const BG = "#FFFDF8";
 const CARD = "#FFFFFF";
 
-const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Utensils, label: "Live Orders", href: "/orders" },
-  { icon: Store, label: "Menu", href: "/menu" },
-  { icon: BarChart2, label: "Analytics", href: "/analytics" },
-  { icon: QrCode, label: "QR Codes", href: "/qr" },
-  { icon: Shield, label: "Settings", href: "/settings" },
-];
+// navItems moved to shared components/adminNav.tsx
 
 function Field({ label, icon: Icon, type = "text", value, onChange, placeholder, hint, error, rightElement }: {
   label: string; icon?: React.ComponentType<{ size: number; color?: string; style?: React.CSSProperties }>; type?: string;
@@ -372,7 +366,6 @@ function readStoredUserPayment() {
 export default function RestaurantSettings() {
   const { user, isLoading, updateUser } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const profileUser = user as typeof user & { payment_qr_code?: string; payment_code?: string };
 
   const [logo, setLogo] = useState<string | null>(null);
@@ -407,7 +400,7 @@ export default function RestaurantSettings() {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
-  const pwError = confirmPw && newPw !== confirmPw ? "Passwords don't match" : "";
+  const pwError = confirmPw && newPw !== confirmPw ? "Passwords do not match." : "";
 
   const completionPercent = (() => {
     let score = 0;
@@ -449,10 +442,10 @@ export default function RestaurantSettings() {
         updateUser(data.user);
         showToast("Changes saved successfully");
       } else {
-        showToast(data.error || "Failed to save changes", "error");
+        showToast(data.error || "Unable to save changes. Please try again.", "error");
       }
     } catch {
-      showToast("Cannot connect to server", "error");
+      showToast("Unable to connect to the server. Please try again later.", "error");
     } finally {
       setSaving(false);
     }
@@ -477,51 +470,7 @@ export default function RestaurantSettings() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: BG, fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
-
-      {/* Sidebar */}
-      <aside style={{ width: 220, background: CARD, borderRight: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 20px 28px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: PRIMARY, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Utensils size={18} color="white" />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: TEXT_PRIMARY }}>MenuQR</p>
-            <p style={{ margin: 0, fontSize: 10, color: MUTED, fontWeight: 500 }}>Admin Panel</p>
-          </div>
-        </div>
-        <nav style={{ flex: 1 }}>
-          {navItems.map(item => {
-            const isActive = pathname === item.href;
-            return (
-              <button key={item.label} onClick={() => router.push(item.href)} style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "11px 20px", border: "none", cursor: "pointer",
-                background: isActive ? PRIMARY_SOFT : "transparent",
-                borderLeft: isActive ? `3px solid ${PRIMARY}` : "3px solid transparent",
-                color: isActive ? PRIMARY : TEXT_SECONDARY,
-                fontWeight: isActive ? 600 : 400, fontSize: 13.5,
-                transition: "all 0.15s", textAlign: "left",
-              }}>
-                <item.icon size={16} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div style={{ margin: "0 14px", padding: "12px 14px", background: PRIMARY_SOFT, borderRadius: 12, border: `1px solid ${PRIMARY_BORDER}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 22 }}>🏪</span>
-            <div>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: TEXT_PRIMARY }}>{user.restaurant_name || "My Restaurant"}</p>
-              <p style={{ margin: 0, fontSize: 11, color: MUTED }}>{user.city || "Bengaluru"}</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+    <AdminLayout>
         {/* Top Bar */}
         <div style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, flexShrink: 0, position: "sticky", top: 0, zIndex: 10 }}>
           <div>
@@ -732,7 +681,6 @@ export default function RestaurantSettings() {
             </div>
           </div>
         </div>
-      </div>
 
       <Toast visible={toast.visible} message={toast.message} type={toast.type} />
       <style>{`
@@ -743,6 +691,6 @@ export default function RestaurantSettings() {
         ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #E5E0D8; border-radius: 99px; }
       `}</style>
-    </div>
+    </AdminLayout>
   );
 }

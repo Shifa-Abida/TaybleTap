@@ -150,10 +150,10 @@ function ConfirmationInner() {
         setOrder(data);
         setError("");
       } else {
-        setError("Could not find your order");
+        setError("Order not found.");
       }
     } catch {
-      setError("Failed to load order status");
+      setError("Unable to load order status.");
     } finally {
       setLoading(false);
     }

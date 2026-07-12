@@ -1,1 +1,1 @@
-# Tables admin (not used - data is in MongoDB)
+# Tables admin (not used; data is stored in MongoDB)

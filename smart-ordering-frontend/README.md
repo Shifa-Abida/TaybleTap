@@ -23,6 +23,10 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
+You can start editing the page by modifying `app/page.tsx`. The page updates automatically as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load the [Geist](https://vercel.com/font) font family for Vercel.
+
 ## Available scripts
 
 - `npm run dev` - start the frontend in development mode.

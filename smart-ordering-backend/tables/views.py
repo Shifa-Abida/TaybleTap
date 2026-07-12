@@ -122,8 +122,11 @@ def tables_list(request):
             return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
 
         # Generate QR code pointing to customer-facing menu
-        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
-        qr_code = generate_qr_code(user["user_id"], table_number)
+        restaurant_id = user.get('user_id')
+        if not restaurant_id:
+            return JsonResponse({"error": "User ID missing in token"}, status=400)
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={restaurant_id}&table={table_number}"
+        qr_code = generate_qr_code(restaurant_id, table_number)
 
         table_doc = {
             "restaurant_id": user["user_id"],
@@ -195,8 +198,11 @@ def tables_detail(request, table_id):
                 return JsonResponse({"error": f"Table {table_number} already exists"}, status=400)
 
         # Regenerate QR code pointing to customer-facing menu
-        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
-        qr_code = generate_qr_code(user["user_id"], table_number)
+        restaurant_id = user.get('user_id')
+        if not restaurant_id:
+            return JsonResponse({"error": "User ID missing in token"}, status=400)
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={restaurant_id}&table={table_number}"
+        qr_code = generate_qr_code(restaurant_id, table_number)
 
         collection.update_one(
             {"_id": oid},
@@ -280,13 +286,16 @@ def tables_generate_all(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     collection = get_tables_collection()
-    tables = list(collection.find({"restaurant_id": user["user_id"]}))
+    restaurant_id = user.get('user_id')
+    if not restaurant_id:
+        return JsonResponse({"error": "User ID missing in token"}, status=400)
+    tables = list(collection.find({"restaurant_id": restaurant_id}))
 
     regenerated = 0
     for table in tables:
         table_number = table.get("table_number")
-        qr_url = f"{FRONTEND_URL}/customer/menu?resto={user['user_id']}&table={table_number}"
-        qr_code = generate_qr_code(user["user_id"], table_number)
+        qr_url = f"{FRONTEND_URL}/customer/menu?resto={restaurant_id}&table={table_number}"
+        qr_code = generate_qr_code(restaurant_id, table_number)
 
         collection.update_one(
             {"_id": table["_id"]},

@@ -104,6 +104,15 @@ def order_list(request):
         }
         result = collection.insert_one(order)
         order["_id"] = result.inserted_id
+        # Broadcast to WebSocket clients
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)("orders", {
+            "type": "order_message",
+            "event": "order_created",
+            "order": _format_order(order),
+        })
         return JsonResponse(_format_order(order), status=201)
 
 
@@ -141,6 +150,15 @@ def order_detail(request, order_id):
                 {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
             )
             order["status"] = new_status
+            # Broadcast update
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)("orders", {
+                "type": "order_message",
+                "event": "order_updated",
+                "order": _format_order(order),
+            })
 
         return JsonResponse(_format_order(order))
 
@@ -179,5 +197,14 @@ def order_status(request, order_id):
             {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
         )
 
-        updated = collection.find_one({"_id": oid})
-        return JsonResponse(_format_order(updated))
+        updated_order = collection.find_one({"_id": oid})
+        # Broadcast update
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)("orders", {
+            "type": "order_message",
+            "event": "order_updated",
+            "order": _format_order(updated_order),
+        })
+        return JsonResponse(_format_order(updated_order))

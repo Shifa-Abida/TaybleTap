@@ -119,7 +119,7 @@ def seed():
         {"$set": {"seq": 51}},
         upsert=True,
     )
-    print(f"Seeded {len(ORDERS)} orders.")
+    print(f"Seeded {len(ORDERS)} orders successfully.")
 
 
 if __name__ == "__main__":

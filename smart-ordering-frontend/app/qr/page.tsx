@@ -303,18 +303,6 @@ export default function QRGenerator() {
   const [deleteTable, setDeleteTable] = useState<TableData | null>(null);
   const [form, setForm] = useState({ table_number: "", table_name: "" });
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-  }, [isLoading, user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchTables();
-    }
-  }, [user]);
-
   const fetchTables = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -331,6 +319,18 @@ export default function QRGenerator() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchTables();
+    }
+  }, [user]);
 
   const openAdd = () => {
     setForm({ table_number: "", table_name: "" });

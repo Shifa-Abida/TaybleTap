@@ -23,7 +23,17 @@ const CATEGORY_COLORS = {
   Desserts: { bg: "rgba(236,72,153,0.1)",  color: "#DB2777" },
 };
 
-const EMPTY_FORM = { name: "", price: "", category: "Starters", desc: "", image: null, imagePreview: null, available: true };
+interface FormState {
+  name: string;
+  price: string;
+  category: string;
+  desc: string;
+  image: File | null;
+  imagePreview: any;
+  available: boolean;
+}
+
+const EMPTY_FORM: FormState = { name: "", price: "", category: "Starters", desc: "", image: null, imagePreview: null, available: true };
 
 const DEFAULT_ITEMS = [
   { name: "Chicken Biryani",      emoji: "🍚", price: 280, category: "Biryani",  desc: "Aromatic basmati rice with tender chicken & spices",    available: true  },
@@ -255,7 +265,7 @@ function DeleteConfirm({ item, onConfirm, onClose }: { item: any; onConfirm: () 
             margin: "0 auto 14px", fontSize: 26,
           }}>🗑️</div>
           <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: TEXT_PRIMARY, fontFamily: "'Playfair Display', serif" }}>
-            Delete "{item.name}"?
+            Delete &ldquo;{item.name}&rdquo;?
           </h3>
           <p style={{ margin: 0, fontSize: 13, color: TEXT_MUTED, lineHeight: 1.5 }}>
             This item will be permanently removed from your menu. This action cannot be undone.
@@ -388,18 +398,6 @@ export default function MenuManagement() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewMode, setViewMode] = useState("grid");
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-  }, [isLoading, user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchMenuItems();
-    }
-  }, [user]);
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const fetchMenuItems = async () => {
@@ -433,6 +431,18 @@ export default function MenuManagement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMenuItems();
+    }
+  }, [user]);
 
   const filtered = items.filter((item: any) => {
     const matchCat = activeCategory === "All" || item.category === activeCategory;

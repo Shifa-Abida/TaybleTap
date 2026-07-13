@@ -343,19 +343,6 @@ export default function LiveOrders() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-  }, [isLoading, user, router]);
-
-  // Fetch orders from API
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
-
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -374,6 +361,19 @@ export default function LiveOrders() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, user, router]);
+
+  // Fetch orders from API
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
 
   const handleAction = async (id: string, newStatus: string) => {
     // Optimistic update

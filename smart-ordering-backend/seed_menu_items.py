@@ -231,11 +231,11 @@ def seed_menu(restaurant_id: str):
             items_to_insert.append(doc)
 
         result = collection.insert_many(items_to_insert)
-        print(f"✅ Seeded {len(result.inserted_ids)} menu items for restaurant {restaurant_id}")
+        print(f"Seeded {len(result.inserted_ids)} menu items for restaurant {restaurant_id}.")
         return result.inserted_ids
 
     except Exception as e:
-        print(f"❌ Error seeding menu: {str(e)}")
+        print(f"Error while seeding menu: {str(e)}.")
         return None
 
 
@@ -253,10 +253,10 @@ if __name__ == "__main__":
 
         if user:
             restaurant_id = str(user["_id"])
-            print(f"🍽️  Seeding menu for restaurant: {user.get('restaurant_name', 'Unknown')}")
+            print(f"Seeding menu for restaurant: {user.get('restaurant_name', 'Unknown')}.")
             seed_menu(restaurant_id)
         else:
-            print("❌ No restaurant found. Please register a restaurant first.")
+            print("No restaurant was found. Please register a restaurant first.")
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"Error during menu seeding: {str(e)}.")

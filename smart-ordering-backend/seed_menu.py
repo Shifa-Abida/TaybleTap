@@ -75,8 +75,8 @@ for item in menu_items:
     resp = requests.post(f"{BASE_URL}/api/menu/", json=item, headers=headers)
     if resp.status_code == 201:
         count += 1
-        print(f"Added: {item['emoji']} {item['name']}")
+        print(f"Added menu item: {item['emoji']} {item['name']}.")
     else:
-        print(f"Failed: {item['name']}")
+        print(f"Failed to add menu item: {item['name']}.")
 
-print(f"Done! Total items seeded: {count}")
+print(f"Menu seeding complete. Total items seeded: {count}.")

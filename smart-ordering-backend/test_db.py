@@ -15,7 +15,7 @@ try:
     client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsCAFile=certifi.where())
     client.admin.command('ping')
     print("Successfully connected to MongoDB.")
-    
+
     # Check databases
     print("Available databases:", client.list_database_names())
 except Exception as e:

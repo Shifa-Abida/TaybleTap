@@ -3,7 +3,7 @@
   HEROSECTION.TSX — Hero for Restaurant Owner Landing Page
   ============================================================
   GOAL: Minimal warm SaaS style.
-  
+
   ANIMATIONS:
   - Headline fades up line by line.
   - Subtext fades up after headline.
@@ -82,7 +82,7 @@ export default function HeroSection() {
           {/* CTA Buttons */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.6 }}
             className="flex flex-wrap gap-4 mb-10">
-            <motion.a href="/register" 
+            <motion.a href="/register"
               whileHover={{ scale: 1.03, boxShadow: "0 4px 14px rgba(232, 106, 51, 0.2)" }}
               whileTap={{ scale: 0.98 }}
               className="flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-white text-sm cursor-pointer transition-shadow"
